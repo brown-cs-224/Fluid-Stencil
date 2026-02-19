@@ -157,6 +157,33 @@ void Shape::init(const std::vector<Eigen::Vector3d> &vertices, const std::vector
     m_numTetVertices = lines.size() * 2;
 }
 
+void Shape::initEdges(const std::vector<Eigen::Vector3d>& vertices, const std::vector<Eigen::Vector2i>& edges)
+{
+    m_verticesSize = vertices.size();
+    m_numTetVertices = edges.size() * 2;
+
+    glGenBuffers(1, &m_tetVbo);
+    glBindBuffer(GL_ARRAY_BUFFER, m_tetVbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(double) * vertices.size() * 3, vertices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glGenBuffers(1, &m_tetIbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_tetIbo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * 2 * edges.size(), edges.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    glGenVertexArrays(1, &m_tetVao);
+    glBindVertexArray(m_tetVao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_tetVbo);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, nullptr);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_tetIbo);
+    glBindVertexArray(0);
+
+    m_wireframe = true;
+}
+
+
 void Shape::setVertices(const std::vector<Eigen::Vector3d> &vertices)
 {
     if(vertices.size() != m_verticesSize) {
@@ -226,10 +253,10 @@ void Shape::draw(Shader *shader)
         shader->setUniform("wire", 1);
         shader->setUniform("model", m_modelMatrix);
         shader->setUniform("inverseTransposeModel", inverseTransposeModel);
-        shader->setUniform("red",   1);
-        shader->setUniform("green", 1);
-        shader->setUniform("blue",  1);
-        shader->setUniform("alpha", 1);
+        shader->setUniform("red",   1.f);
+        shader->setUniform("green", 0.5f);
+        shader->setUniform("blue",  0.3f);
+        shader->setUniform("alpha", 1.f);
         glBindVertexArray(m_tetVao);
         glDrawElements(GL_LINES, m_numTetVertices, GL_UNSIGNED_INT, reinterpret_cast<GLvoid *>(0));
         glBindVertexArray(0);

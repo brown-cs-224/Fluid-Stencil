@@ -5,6 +5,7 @@
 #endif
 
 #include "simulation.h"
+#include "fluidsim.h"
 #include "graphics/camera.h"
 #include "graphics/shader.h"
 
@@ -43,6 +44,7 @@ private:
     QTimer        m_intervalTimer;     // For triggering timed events
 
     Simulation m_sim;
+    FluidSim m_fluidsim;
     Camera     m_camera;
     Shader    *m_shader;
 

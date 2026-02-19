@@ -16,6 +16,7 @@ public:
     void init(const std::vector<Eigen::Vector3d> &vertices, const std::vector<Eigen::Vector3d> &normals, const std::vector<Eigen::Vector3i> &triangles);
     void init(const std::vector<Eigen::Vector3d> &vertices, const std::vector<Eigen::Vector3i> &triangles);
     void init(const std::vector<Eigen::Vector3d> &vertices, const std::vector<Eigen::Vector3i> &triangles, const std::vector<Eigen::Vector4i> &tetIndices);
+    void initEdges(const std::vector<Eigen::Vector3d>& vertices, const std::vector<Eigen::Vector2i>& edges);
 
     void setVertices(const std::vector<Eigen::Vector3d> &vertices, const std::vector<Eigen::Vector3d> &normals);
     void setVertices(const std::vector<Eigen::Vector3d> &vertices);
@@ -37,16 +38,18 @@ private:
     unsigned int m_numSurfaceVertices;
     unsigned int m_numTetVertices;
     unsigned int m_verticesSize;
-    float m_red;
-    float m_blue;
-    float m_green;
-    float m_alpha;
+    float m_red = 1.f;
+    float m_blue = 0.f;
+    float m_green = 0.f;
+    float m_alpha = 1.f;
 
     std::vector<Eigen::Vector3i> m_faces;
 
     Eigen::Matrix4f m_modelMatrix;
 
     bool m_wireframe;
+
+    // bool m_
 };
 
 #endif // SHAPE_H

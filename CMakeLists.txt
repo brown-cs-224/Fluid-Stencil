@@ -31,6 +31,7 @@ add_executable(${PROJECT_NAME}
     src/main.cpp
     src/mainwindow.cpp
     src/simulation.cpp
+    src/fluidsim.cpp
     src/glwidget.cpp
     src/graphics/camera.cpp
     src/graphics/graphicsdebug.cpp
@@ -40,6 +41,7 @@ add_executable(${PROJECT_NAME}
 
     src/mainwindow.h
     src/simulation.h
+    src/fluidsim.h
     src/glwidget.h
     src/graphics/camera.h
     src/graphics/graphicsdebug.h

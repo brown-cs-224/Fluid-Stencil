@@ -13,6 +13,7 @@ GLWidget::GLWidget(QWidget *parent) :
     QOpenGLWidget(parent),
     m_deltaTimeProvider(),
     m_intervalTimer(),
+    m_fluidsim(),
     m_sim(),
     m_camera(),
     m_shader(),
@@ -52,7 +53,7 @@ void GLWidget::initializeGL()
     fprintf(stdout, "Successfully initialized GLEW %s\n", glewGetString(GLEW_VERSION));
 
     // Set clear color to white
-    glClearColor(1, 1, 1, 1);
+    glClearColor(0, 0, 0, 1);
 
     // Enable depth-testing and backface culling
     glEnable(GL_DEPTH_TEST);
@@ -61,7 +62,7 @@ void GLWidget::initializeGL()
 
     // Initialize the shader and simulation
     m_shader = new Shader(":/resources/shaders/shader.vert", ":/resources/shaders/shader.frag");
-    m_sim.init();
+    m_fluidsim.init();
 
     // Initialize camera with a reasonable transform
     Eigen::Vector3f eye    = {0, 2, -5};
@@ -80,7 +81,13 @@ void GLWidget::paintGL()
     m_shader->bind();
     m_shader->setUniform("proj", m_camera.getProjection());
     m_shader->setUniform("view", m_camera.getView());
-    m_sim.draw(m_shader);
+    // glDisable(GL_CULL_FACE);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    m_fluidsim.draw(m_shader);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    // glEnable(GL_CULL_FACE);
+    // glCullFace(GL_BACK);
+    // m_fluidsim.draw(m_shader);
     m_shader->unbind();
 }
 
@@ -142,7 +149,7 @@ void GLWidget::keyPressEvent(QKeyEvent *event)
     case Qt::Key_F: m_vertical -= SPEED; break;
     case Qt::Key_R: m_vertical += SPEED; break;
     case Qt::Key_C: m_camera.toggleIsOrbiting(); break;
-    case Qt::Key_T: m_sim.toggleWire(); break;
+    // case Qt::Key_T: m_sim.toggleWire(); break;
     case Qt::Key_Escape: QApplication::quit();
     }
 }
@@ -167,7 +174,7 @@ void GLWidget::keyReleaseEvent(QKeyEvent *event)
 void GLWidget::tick()
 {
     float deltaSeconds = m_deltaTimeProvider.restart() / 1000.f;
-    m_sim.update(deltaSeconds);
+    m_fluidsim.update(deltaSeconds);
 
     // Move camera
     auto look = m_camera.getLook();
