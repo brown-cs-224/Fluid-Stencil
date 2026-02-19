@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
 
     // Create a Qt application
     QApplication a(argc, argv);
-    QCoreApplication::setApplicationName("Simulation");
+    QCoreApplication::setApplicationName("Fluid Simulation");
     QCoreApplication::setOrganizationName("CS 2240");
     QCoreApplication::setApplicationVersion(QT_VERSION_STR);
 
