@@ -1,29 +1,29 @@
-#include "fluidsim.h"
+#include "gridrenderer.h"
 #include "graphics/meshloader.h"
 
 #include <iostream>
 
 using namespace Eigen;
 
-FluidSim::FluidSim() {}
+GridRenderer::GridRenderer() {}
 
-void FluidSim::init()
+void GridRenderer::init()
 {
     
     initDomainCube();
 }
 
-void FluidSim::draw(Shader *shader)
+void GridRenderer::draw(Shader *shader, const Grid &grid)
 {
     m_domainCube.draw(shader);
 }
 
-void FluidSim::update(double seconds)
+void GridRenderer::update(double seconds)
 {
     
 }
 
-void FluidSim::initDomainCube()
+void GridRenderer::initDomainCube()
 {
     std::vector<Eigen::Vector3d> verts = {
         {-1,-1,-1},{1,-1,-1},{1,1,-1},{-1,1,-1},

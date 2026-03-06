@@ -1,26 +1,21 @@
 #pragma once
 
 #include "graphics/shape.h"
+#include "grid.h"
 
 class Shader;
 
-struct SimulationDomain {
-    int nx = 32;
-    int ny = 32;
-    int nz = 32;
-    float size = 1.0f; // world-space cube size
-};
 
-class FluidSim
+class GridRenderer
 {
     public:
-        FluidSim();
+        GridRenderer();
 
         void init();
 
         void update(double seconds);
 
-        void draw(Shader *shader);
+        void draw(Shader *shader, const Grid &grid);
     
     private:
         Shape m_domainCube;

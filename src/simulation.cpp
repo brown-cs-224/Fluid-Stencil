@@ -5,7 +5,11 @@
 
 using namespace Eigen;
 
-Simulation::Simulation() {}
+Simulation::Simulation(Grid &grid) 
+    : m_grid(grid)
+{
+
+}
 
 void Simulation::init()
 {

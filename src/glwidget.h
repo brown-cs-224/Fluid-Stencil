@@ -5,7 +5,8 @@
 #endif
 
 #include "simulation.h"
-#include "fluidsim.h"
+#include "gridrenderer.h"
+#include "grid.h"
 #include "graphics/camera.h"
 #include "graphics/shader.h"
 
@@ -44,7 +45,8 @@ private:
     QTimer        m_intervalTimer;     // For triggering timed events
 
     Simulation m_sim;
-    FluidSim m_fluidsim;
+    GridRenderer m_gridRenderer;
+    Grid m_grid;
     Camera     m_camera;
     Shader    *m_shader;
 

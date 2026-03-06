@@ -1,13 +1,15 @@
 #pragma once
 
 #include "graphics/shape.h"
+#include "grid.h"
 
 class Shader;
+
 
 class Simulation
 {
 public:
-    Simulation();
+    Simulation(Grid &grid);
 
     void init();
 
@@ -18,6 +20,7 @@ public:
     void toggleWire();
 private:
     Shape m_shape;
+    Grid &m_grid;
 
     Shape m_ground;
     void initGround();

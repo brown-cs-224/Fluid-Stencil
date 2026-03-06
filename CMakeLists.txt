@@ -30,8 +30,9 @@ include_directories(libs)
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/mainwindow.cpp
+    src/grid.cpp
     src/simulation.cpp
-    src/fluidsim.cpp
+    src/gridrenderer.cpp
     src/glwidget.cpp
     src/graphics/camera.cpp
     src/graphics/graphicsdebug.cpp
@@ -40,8 +41,9 @@ add_executable(${PROJECT_NAME}
     src/graphics/shape.cpp
 
     src/mainwindow.h
+    src/grid.h
     src/simulation.h
-    src/fluidsim.h
+    src/gridrenderer.h
     src/glwidget.h
     src/graphics/camera.h
     src/graphics/graphicsdebug.h

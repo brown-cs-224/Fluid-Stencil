@@ -13,8 +13,9 @@ GLWidget::GLWidget(QWidget *parent) :
     QOpenGLWidget(parent),
     m_deltaTimeProvider(),
     m_intervalTimer(),
-    m_fluidsim(),
-    m_sim(),
+    m_gridRenderer(),
+    m_grid(16, 16, 16, 1.f),
+    m_sim(m_grid),
     m_camera(),
     m_shader(),
     m_forward(),
@@ -60,9 +61,9 @@ void GLWidget::initializeGL()
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
 
-    // Initialize the shader and simulation
+    // Initialize the shader and renderer and maybe also the sim?
     m_shader = new Shader(":/resources/shaders/shader.vert", ":/resources/shaders/shader.frag");
-    m_fluidsim.init();
+    m_gridRenderer.init();
 
     // Initialize camera with a reasonable transform
     Eigen::Vector3f eye    = {0, 2, -5};
@@ -83,12 +84,13 @@ void GLWidget::paintGL()
     m_shader->setUniform("view", m_camera.getView());
     // glDisable(GL_CULL_FACE);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    m_fluidsim.draw(m_shader);
+    m_gridRenderer.draw(m_shader, m_grid);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     // glEnable(GL_CULL_FACE);
     // glCullFace(GL_BACK);
-    // m_fluidsim.draw(m_shader);
+    // m_gridRenderer.draw(m_shader);
     m_shader->unbind();
+    std::cout << "This is grid size:" << m_grid.cells.size() << std::endl;
 }
 
 void GLWidget::resizeGL(int w, int h)
@@ -149,7 +151,6 @@ void GLWidget::keyPressEvent(QKeyEvent *event)
     case Qt::Key_F: m_vertical -= SPEED; break;
     case Qt::Key_R: m_vertical += SPEED; break;
     case Qt::Key_C: m_camera.toggleIsOrbiting(); break;
-    // case Qt::Key_T: m_sim.toggleWire(); break;
     case Qt::Key_Escape: QApplication::quit();
     }
 }
@@ -174,7 +175,7 @@ void GLWidget::keyReleaseEvent(QKeyEvent *event)
 void GLWidget::tick()
 {
     float deltaSeconds = m_deltaTimeProvider.restart() / 1000.f;
-    m_fluidsim.update(deltaSeconds);
+    m_gridRenderer.update(deltaSeconds);
 
     // Move camera
     auto look = m_camera.getLook();
