@@ -250,7 +250,7 @@ void Shape::draw(Shader *shader)
     Eigen::Matrix3f inverseTransposeModel = m3.inverse().transpose();
 
     if(m_wireframe && m_tetVao != static_cast<GLuint>(-1)) {
-        shader->setUniform("wire", 1);
+        shader->setUniform("cube", 1);
         shader->setUniform("model", m_modelMatrix);
         shader->setUniform("inverseTransposeModel", inverseTransposeModel);
         shader->setUniform("red",   1.f);
@@ -261,7 +261,7 @@ void Shape::draw(Shader *shader)
         glDrawElements(GL_LINES, m_numTetVertices, GL_UNSIGNED_INT, reinterpret_cast<GLvoid *>(0));
         glBindVertexArray(0);
     } else {
-        shader->setUniform("wire", 0);
+        shader->setUniform("cube", 0);
         shader->setUniform("model", m_modelMatrix);
         shader->setUniform("inverseTransposeModel", inverseTransposeModel);
         shader->setUniform("red",   m_red);

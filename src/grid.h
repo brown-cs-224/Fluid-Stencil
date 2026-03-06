@@ -22,6 +22,7 @@ public:
     Grid(int nx, int ny, int nz, float cellSize);
 
     GridCell &at(int i, int j, int k);
+    const GridCell &at(int i, int j, int k) const;
 
     Eigen::Vector3f cellCenter(int i, int j, int k) const;
 

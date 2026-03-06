@@ -13,6 +13,11 @@ GridCell &Grid::at(int i, int j, int k)
     return cells[static_cast<size_t>(index(i, j, k))];
 }
 
+const GridCell &Grid::at(int i, int j, int k) const
+{
+    return cells[static_cast<size_t>(index(i, j, k))];
+}
+
 Eigen::Vector3f Grid::cellCenter(int i, int j, int k) const
 {
     return Eigen::Vector3f(

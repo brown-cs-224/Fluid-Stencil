@@ -13,9 +13,10 @@ GLWidget::GLWidget(QWidget *parent) :
     QOpenGLWidget(parent),
     m_deltaTimeProvider(),
     m_intervalTimer(),
-    m_gridRenderer(),
-    m_grid(16, 16, 16, 1.f),
+    m_grid(16, 16, 16, 0.1f),
     m_sim(m_grid),
+    m_gridRenderer(),
+    m_gridRenderMode(GridRenderMode::VELOC),
     m_camera(),
     m_shader(),
     m_forward(),
@@ -63,6 +64,7 @@ void GLWidget::initializeGL()
 
     // Initialize the shader and renderer and maybe also the sim?
     m_shader = new Shader(":/resources/shaders/shader.vert", ":/resources/shaders/shader.frag");
+    m_sim.init();
     m_gridRenderer.init();
 
     // Initialize camera with a reasonable transform
@@ -84,13 +86,12 @@ void GLWidget::paintGL()
     m_shader->setUniform("view", m_camera.getView());
     // glDisable(GL_CULL_FACE);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    m_gridRenderer.draw(m_shader, m_grid);
+    m_gridRenderer.draw(m_shader, m_grid, m_gridRenderMode);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     // glEnable(GL_CULL_FACE);
     // glCullFace(GL_BACK);
     // m_gridRenderer.draw(m_shader);
     m_shader->unbind();
-    std::cout << "This is grid size:" << m_grid.cells.size() << std::endl;
 }
 
 void GLWidget::resizeGL(int w, int h)
@@ -144,12 +145,15 @@ void GLWidget::keyPressEvent(QKeyEvent *event)
 
     switch (event->key())
     {
+    case Qt::Key_P: m_paused  = !m_paused; break;
     case Qt::Key_W: m_forward  += SPEED; break;
     case Qt::Key_S: m_forward  -= SPEED; break;
     case Qt::Key_A: m_sideways -= SPEED; break;
     case Qt::Key_D: m_sideways += SPEED; break;
     case Qt::Key_F: m_vertical -= SPEED; break;
     case Qt::Key_R: m_vertical += SPEED; break;
+    case Qt::Key_1: m_gridRenderMode = GridRenderMode::GRID_CENTER; break;
+    case Qt::Key_2: m_gridRenderMode = GridRenderMode::VELOC; break;
     case Qt::Key_C: m_camera.toggleIsOrbiting(); break;
     case Qt::Key_Escape: QApplication::quit();
     }
@@ -175,7 +179,10 @@ void GLWidget::keyReleaseEvent(QKeyEvent *event)
 void GLWidget::tick()
 {
     float deltaSeconds = m_deltaTimeProvider.restart() / 1000.f;
-    m_gridRenderer.update(deltaSeconds);
+
+    if(!m_paused){
+        m_sim.update(deltaSeconds);
+    }
 
     // Move camera
     auto look = m_camera.getLook();

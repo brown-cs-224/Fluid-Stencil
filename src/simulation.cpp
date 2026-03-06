@@ -13,65 +13,73 @@ Simulation::Simulation(Grid &grid)
 
 void Simulation::init()
 {
-    // STUDENTS: This code loads up the tetrahedral mesh in 'example-meshes/single-tet.mesh'
-    //    (note: your working directory must be set to the root directory of the starter code
-    //    repo for this file to load correctly). You'll probably want to instead have this code
-    //    load up a tet mesh based on e.g. a file path specified with a command line argument.
-    std::vector<Vector3d> vertices;
-    std::vector<Vector4i> tets;
-    if (MeshLoader::loadTetMesh(":/example-meshes/single-tet.mesh", vertices, tets)) {
-        // STUDENTS: This code computes the surface mesh of the loaded tet mesh, i.e. the faces
-        //    of tetrahedra which are on the exterior surface of the object. Right now, this is
-        //    hard-coded for the single-tet mesh. You'll need to implement surface mesh extraction
-        //    for arbitrary tet meshes. Think about how you can identify which tetrahedron faces
-        //    are surface faces...
-        std::vector<Vector3i> faces;
-        faces.emplace_back(1, 0, 2);
-        faces.emplace_back(2, 0, 3);
-        faces.emplace_back(3, 1, 2);
-        faces.emplace_back(3, 0, 1);
-        m_shape.init(vertices, faces, tets);
+
+    const Vector3f domainCenter(
+        0.5f * static_cast<float>(m_grid.nx) * m_grid.cellSize,
+        0.5f * static_cast<float>(m_grid.ny) * m_grid.cellSize,
+        0.5f * static_cast<float>(m_grid.nz) * m_grid.cellSize
+    );
+
+    for (int k = 0; k < m_grid.nz; ++k) {
+        for (int j = 0; j < m_grid.ny; ++j) {
+            for (int i = 0; i < m_grid.nx; ++i) {
+                const Vector3f p = m_grid.cellCenter(i, j, k);
+                const Vector3f d = p - domainCenter;
+                m_grid.at(i, j, k).velocity = 0.2f * Vector3f(-d.z(), 0.f, d.x());
+            }
+        }
     }
-    m_shape.setModelMatrix(Affine3f(Eigen::Translation3f(0, 2, 0)));
 
     initGround();
 }
 
 void Simulation::update(double seconds)
 {
-    // STUDENTS: This method should contain all the time-stepping logic for your simulation.
-    //   Specifically, the code you write here should compute new, updated vertex positions for your
-    //   simulation mesh, and it should then call m_shape.setVertices to update the display with those
-    //   newly-updated vertices.
+    const Vector3f domainCenter(
+        0.5f * m_grid.nx * m_grid.cellSize,
+        0.5f * m_grid.ny * m_grid.cellSize,
+        0.5f * m_grid.nz * m_grid.cellSize
+        );
 
-    // STUDENTS: As currently written, the program will just continually compute simulation timesteps as long
-    //    as the program is running (see View::tick in view.cpp) . You might want to e.g. add a hotkey for pausing
-    //    the simulation, and perhaps start the simulation out in a paused state.
+    static float totalTime = 0.0f;
+    totalTime += static_cast<float>(seconds);
 
-    // Note that the "seconds" parameter represents the amount of time that has passed since
-    // the last update
+    const float rotationSpeed = 2.0f; // radians per second
+    const float vortexStrength = 1.0f;
+
+    for (int k = 0; k < m_grid.nz; ++k) {
+        for (int j = 0; j < m_grid.ny; ++j) {
+            for (int i = 0; i < m_grid.nx; ++i) {
+                Vector3f d = m_grid.cellCenter(i, j, k) - domainCenter;
+
+                float theta = rotationSpeed * totalTime;
+
+                float cosTheta = cos(theta);
+                float sinTheta = sin(theta);
+
+                Vector3f tangent(-sinTheta * d.x() - cosTheta * d.z(),
+                                 0.0f,
+                                 cosTheta * d.x() - sinTheta * d.z());
+
+                if (tangent.norm() > 1e-6f)
+                    tangent.normalize();
+
+                m_grid.at(i, j, k).velocity = vortexStrength * tangent;
+            }
+        }
+    }
 }
 
 void Simulation::draw(Shader *shader)
 {
-    m_shape.draw(shader);
-    m_ground.draw(shader);
+
 }
 
 void Simulation::toggleWire()
 {
-    m_shape.toggleWireframe();
 }
 
 void Simulation::initGround()
 {
-    std::vector<Vector3d> groundVerts;
-    std::vector<Vector3i> groundFaces;
-    groundVerts.emplace_back(-5, 0, -5);
-    groundVerts.emplace_back(-5, 0, 5);
-    groundVerts.emplace_back(5, 0, 5);
-    groundVerts.emplace_back(5, 0, -5);
-    groundFaces.emplace_back(0, 1, 2);
-    groundFaces.emplace_back(0, 2, 3);
-    m_ground.init(groundVerts, groundFaces);
+
 }

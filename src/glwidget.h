@@ -44,9 +44,10 @@ private:
     QElapsedTimer m_deltaTimeProvider; // For measuring elapsed time
     QTimer        m_intervalTimer;     // For triggering timed events
 
+    Grid m_grid;
     Simulation m_sim;
     GridRenderer m_gridRenderer;
-    Grid m_grid;
+    GridRenderMode m_gridRenderMode;
     Camera     m_camera;
     Shader    *m_shader;
 
@@ -58,6 +59,7 @@ private:
     int m_lastY;
 
     bool m_capture;
+    bool m_paused = false;
 
 private slots:
 
