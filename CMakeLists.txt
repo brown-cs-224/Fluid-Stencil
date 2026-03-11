@@ -14,14 +14,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(OpenGL REQUIRED)
 
-# Specifies required Qt components
-find_package(Qt6 REQUIRED COMPONENTS Core)
-find_package(Qt6 REQUIRED COMPONENTS Concurrent)
-find_package(Qt6 REQUIRED COMPONENTS Xml)
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
-find_package(Qt6 REQUIRED COMPONENTS OpenGL)
-find_package(Qt6 REQUIRED COMPONENTS OpenGLWidgets)
-find_package(Qt6 REQUIRED COMPONENTS Gui)
+
 
 # GLFW
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -53,31 +46,23 @@ include_directories(libs)
 # Specifies .cpp and .h files to be passed to the compiler
 add_executable(${PROJECT_NAME}
     src/main.cpp
-    src/mainwindow.cpp
     src/grid.cpp
     src/simulation.cpp
     src/gridrenderer.cpp
-    src/glwidget.cpp
     src/graphics/camera.cpp
     src/graphics/graphicsdebug.cpp
-    src/graphics/meshloader.cpp
     src/graphics/shader.cpp
     src/graphics/shape.cpp
 
-    src/mainwindow.h
     src/grid.h
     src/simulation.h
     src/gridrenderer.h
     src/window.cpp
     src/window.h
-    src/glwidget.h
     src/graphics/camera.h
     src/graphics/graphicsdebug.h
-    src/graphics/meshloader.h
     src/graphics/shader.h
     src/graphics/shape.h
-
-    src/test.cpp
 
     util/tiny_obj_loader.h
     util/unsupportedeigenthing/OpenGLSupport
@@ -87,15 +72,8 @@ add_executable(${PROJECT_NAME}
 add_library(StaticGLEW STATIC glew/src/glew.c)
 include_directories(${PROJECT_NAME} PRIVATE glew/include)
 
-# Specifies libraries to be linked (Qt components, glew, etc)
+# Specifies libraries to be linked (Imgui, glew, glfw)
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    Qt::Concurrent
-    Qt::Core
-    Qt::Gui
-    Qt::OpenGL
-    Qt::OpenGLWidgets
-    Qt::Widgets
-    Qt::Xml
     StaticGLEW
     glfw
     imgui
@@ -106,16 +84,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     Eigen
     dependencies/imgui
     dependencies/imgui/backends
-)
-
-# Specifies other files
-qt6_add_resources(${PROJECT_NAME} "Resources"
-    PREFIX
-        "/"
-    FILES
-        resources/shaders/shader.frag
-        resources/shaders/shader.vert
-        example-meshes/single-tet.mesh
 )
 
 # GLEW: this provides support for Windows (including 64-bit)

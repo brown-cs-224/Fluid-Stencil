@@ -1,9 +1,10 @@
 #include "graphics/shader.h"
 #include "graphics/graphicsdebug.h"
 
-#include <QFile>
-#include <QString>
-#include <QTextStream>
+#include <fstream>
+#include <sstream>
+#include <stdexcept>
+#include <string>
 #include <iostream>
 
 Shader::Shader(const std::string &vertexPath,
@@ -111,18 +112,16 @@ void Shader::buildShaderProgramFromShaders(const std::vector<GLuint> &shaderHand
 
 std::string Shader::getFileContents(std::string filepath)
 {
-    QString filepathStr = QString::fromStdString(filepath);
-    QFile file(filepathStr);
-
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        throw std::runtime_error(std::string("Failed to open shader: ") + filepath);
+    std::ifstream file(filepath, std::ios::in | std::ios::binary);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open shader: " + filepath);
     }
 
-    QTextStream stream(&file);
-    QString contents = stream.readAll();
+    std::ostringstream contents;
+    contents << file.rdbuf();
     file.close();
 
-    return contents.toStdString();
+    return contents.str();
 }
 
 GLuint Shader::createShaderFromString(const std::string &str, GLenum shaderType)
