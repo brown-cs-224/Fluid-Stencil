@@ -68,6 +68,8 @@ add_executable(${PROJECT_NAME}
     src/grid.h
     src/simulation.h
     src/gridrenderer.h
+    src/window.cpp
+    src/window.h
     src/glwidget.h
     src/graphics/camera.h
     src/graphics/graphicsdebug.h
