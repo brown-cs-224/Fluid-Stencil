@@ -12,6 +12,7 @@ set(CMAKE_AUTORCC ON)
 # Sets C++ standard
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+find_package(OpenGL REQUIRED)
 
 # Specifies required Qt components
 find_package(Qt6 REQUIRED COMPONENTS Core)
@@ -21,6 +22,29 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 find_package(Qt6 REQUIRED COMPONENTS OpenGL)
 find_package(Qt6 REQUIRED COMPONENTS OpenGLWidgets)
 find_package(Qt6 REQUIRED COMPONENTS Gui)
+
+# GLFW
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+add_subdirectory(dependencies/glfw)
+
+# ImGui
+add_library(imgui
+    dependencies/imgui/imgui.cpp
+    dependencies/imgui/imgui_draw.cpp
+    dependencies/imgui/imgui_tables.cpp
+    dependencies/imgui/imgui_widgets.cpp
+    dependencies/imgui/backends/imgui_impl_glfw.cpp
+    dependencies/imgui/backends/imgui_impl_opengl3.cpp
+)
+
+target_include_directories(imgui PUBLIC
+    dependencies/imgui
+    dependencies/imgui/backends
+    dependencies/glfw/include
+)
 
 # Allows you to include files from within those directories, without prefixing their filepaths
 include_directories(src)
@@ -51,6 +75,8 @@ add_executable(${PROJECT_NAME}
     src/graphics/shader.h
     src/graphics/shape.h
 
+    src/test.cpp
+
     util/tiny_obj_loader.h
     util/unsupportedeigenthing/OpenGLSupport
 )
@@ -69,11 +95,15 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt::Widgets
     Qt::Xml
     StaticGLEW
+    glfw
+    imgui
 )
 
 # This allows you to `#include "Eigen/..."`
 target_include_directories(${PROJECT_NAME} PRIVATE
     Eigen
+    dependencies/imgui
+    dependencies/imgui/backends
 )
 
 # Specifies other files
