@@ -3,7 +3,10 @@
 
 #include <Eigen/Geometry>
 
+#include <algorithm>
+#include <cmath>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 using namespace Eigen;
@@ -20,6 +23,14 @@ struct DebugVertex
     GLfloat nz;
 };
 
+struct InstanceData
+{
+    GLfloat ox;
+    GLfloat oy;
+    GLfloat oz;
+    GLfloat value;
+};
+
 Vector3f toRenderSpaceCenter(const Grid &grid, int i, int j, int k)
 {
     const float fx = (static_cast<float>(i) + 0.5f) / static_cast<float>(grid.nx);
@@ -34,8 +45,14 @@ GridRenderer::GridRenderer()
       m_pointsVbo(0),
       m_arrowsVao(0),
       m_arrowsVbo(0),
+      m_sphereVao(0),
+      m_sphereVbo(0),
+      m_sphereIbo(0),
+      m_instanceVbo(0),
       m_numPointVertices(0),
-      m_numArrowVertices(0)
+      m_numArrowVertices(0),
+      m_numSphereIndices(0),
+      m_numSphereInstances(0)
 {
 }
 
@@ -43,14 +60,18 @@ void GridRenderer::init()
 {
     initDomainCube();
     initDebugGeometryBuffers();
+    initSphereGeometry();
 }
 
 void GridRenderer::draw(Shader *shader, const Grid &grid, GridRenderMode mode)
 {
     updateDomainCubeTransform(grid);
+    shader->setUniform("renderMode", 0);
 
     if (mode == GridRenderMode::VELOC) {
         uploadVelocityArrows(grid);
+    } else if (mode == GridRenderMode::DENSITY || mode == GridRenderMode::PRESSURE) {
+        uploadScalarSpheres(grid, mode == GridRenderMode::DENSITY);
     } else {
         m_numArrowVertices = 0;
         uploadCellCenterPoints(grid);
@@ -59,8 +80,9 @@ void GridRenderer::draw(Shader *shader, const Grid &grid, GridRenderMode mode)
     m_domainCube.draw(shader);
     if (mode == GridRenderMode::VELOC) {
         drawVelocityArrows(shader);
-    }
-    else{
+    } else if (mode == GridRenderMode::DENSITY || mode == GridRenderMode::PRESSURE) {
+        drawScalarSpheres(shader);
+    } else {
         drawCellCenters(shader);
     }
 }
@@ -112,6 +134,91 @@ void GridRenderer::initDebugGeometryBuffers()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(DebugVertex), reinterpret_cast<void *>(0));
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(DebugVertex), reinterpret_cast<void *>(3 * sizeof(GLfloat)));
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void GridRenderer::initSphereGeometry()
+{
+    static constexpr int kStacks = 12;
+    static constexpr int kSlices = 24;
+    static constexpr float kPi = 3.14159265359f;
+    static constexpr float kTwoPi = 6.28318530718f;
+
+    std::vector<float> vertices;
+    std::vector<unsigned int> indices;
+
+    vertices.reserve(static_cast<size_t>((kStacks + 1) * (kSlices + 1) * 3));
+
+    for (int i = 0; i <= kStacks; ++i) {
+        float v = static_cast<float>(i) / static_cast<float>(kStacks);
+        float phi = v * kPi;
+        float sinPhi = std::sin(phi);
+        float cosPhi = std::cos(phi);
+
+        for (int j = 0; j <= kSlices; ++j) {
+            float u = static_cast<float>(j) / static_cast<float>(kSlices);
+            float theta = u * kTwoPi;
+            float sinTheta = std::sin(theta);
+            float cosTheta = std::cos(theta);
+
+            vertices.push_back(sinPhi * cosTheta);
+            vertices.push_back(cosPhi);
+            vertices.push_back(sinPhi * sinTheta);
+        }
+    }
+
+    for (int i = 0; i < kStacks; ++i) {
+        for (int j = 0; j < kSlices; ++j) {
+            int first = i * (kSlices + 1) + j;
+            int second = first + kSlices + 1;
+
+            indices.push_back(static_cast<unsigned int>(first));
+            indices.push_back(static_cast<unsigned int>(second));
+            indices.push_back(static_cast<unsigned int>(first + 1));
+
+            indices.push_back(static_cast<unsigned int>(second));
+            indices.push_back(static_cast<unsigned int>(second + 1));
+            indices.push_back(static_cast<unsigned int>(first + 1));
+        }
+    }
+
+    m_numSphereIndices = static_cast<GLsizei>(indices.size());
+
+    glGenVertexArrays(1, &m_sphereVao);
+    glGenBuffers(1, &m_sphereVbo);
+    glGenBuffers(1, &m_sphereIbo);
+    glGenBuffers(1, &m_instanceVbo);
+
+    glBindVertexArray(m_sphereVao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_sphereVbo);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        static_cast<GLsizeiptr>(vertices.size() * sizeof(float)),
+        vertices.data(),
+        GL_STATIC_DRAW
+    );
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), reinterpret_cast<void *>(0));
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_sphereIbo);
+    glBufferData(
+        GL_ELEMENT_ARRAY_BUFFER,
+        static_cast<GLsizeiptr>(indices.size() * sizeof(unsigned int)),
+        indices.data(),
+        GL_STATIC_DRAW
+    );
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_instanceVbo);
+    glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(InstanceData), reinterpret_cast<void *>(0));
+    glVertexAttribDivisor(2, 1);
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(InstanceData), reinterpret_cast<void *>(3 * sizeof(GLfloat)));
+    glVertexAttribDivisor(3, 1);
+
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
@@ -176,6 +283,7 @@ void GridRenderer::uploadVelocityArrows(const Grid &grid)
                     );
 
                 float mag = velRender.norm();
+                max_veloc = std::max(max_veloc, mag);
                 if (mag < kMinVelocity)
                     continue;
 
@@ -228,6 +336,57 @@ void GridRenderer::uploadVelocityArrows(const Grid &grid)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+void GridRenderer::uploadScalarSpheres(const Grid &grid, bool useDensity)
+{
+    std::vector<InstanceData> instances;
+    instances.reserve(static_cast<size_t>(grid.nx) * grid.ny * grid.nz);
+
+    float minValue = std::numeric_limits<float>::max();
+    float maxValue = std::numeric_limits<float>::lowest();
+
+    for (int k = 0; k < grid.nz; ++k) {
+        for (int j = 0; j < grid.ny; ++j) {
+            for (int i = 0; i < grid.nx; ++i) {
+                const GridCell &cell = grid.at(i, j, k);
+                float value = useDensity ? cell.density : cell.pressure;
+                minValue = std::min(minValue, value);
+                maxValue = std::max(maxValue, value);
+            }
+        }
+    }
+
+    const float range = std::max(1e-6f, maxValue - minValue);
+
+    for (int k = 0; k < grid.nz; ++k) {
+        for (int j = 0; j < grid.ny; ++j) {
+            for (int i = 0; i < grid.nx; ++i) {
+                const Vector3f c = toRenderSpaceCenter(grid, i, j, k);
+                const GridCell &cell = grid.at(i, j, k);
+                float value = useDensity ? cell.density : cell.pressure;
+                float normalized = (value - minValue) / range;
+                instances.push_back({c.x(), c.y(), c.z(), normalized});
+            }
+        }
+    }
+
+    m_numSphereInstances = static_cast<GLsizei>(instances.size());
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_instanceVbo);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        static_cast<GLsizeiptr>(instances.size() * sizeof(InstanceData)),
+        instances.data(),
+        GL_DYNAMIC_DRAW
+    );
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    const float cellX = grid.nx > 0 ? (2.0f / static_cast<float>(grid.nx)) : 0.1f;
+    const float cellY = grid.ny > 0 ? (2.0f / static_cast<float>(grid.ny)) : 0.1f;
+    const float cellZ = grid.nz > 0 ? (2.0f / static_cast<float>(grid.nz)) : 0.1f;
+    const float cellMin = std::min(cellX, std::min(cellY, cellZ));
+    m_sphereScale = 0.3f * cellMin;
+}
+
 void GridRenderer::drawCellCenters(Shader *shader)
 {
     if (m_numPointVertices == 0) {
@@ -243,6 +402,8 @@ void GridRenderer::drawCellCenters(Shader *shader)
     shader->setUniform("green", 0.8f);
     shader->setUniform("blue", 1.0f);
     shader->setUniform("alpha", 1.0f);
+    shader->setUniform("maxVelocity", max_veloc);
+    shader->setUniform("renderMode", 0);
 
     glPointSize(2.0f);
     glBindVertexArray(m_pointsVao);
@@ -265,8 +426,32 @@ void GridRenderer::drawVelocityArrows(Shader *shader)
     shader->setUniform("green", 0.0f);
     shader->setUniform("blue", 0.0f);
     shader->setUniform("alpha", 1.0f);
+    shader->setUniform("renderMode", 0);
 
     glBindVertexArray(m_arrowsVao);
     glDrawArrays(GL_LINES, 0, m_numArrowVertices);
+    glBindVertexArray(0);
+}
+
+void GridRenderer::drawScalarSpheres(Shader *shader)
+{
+    if (m_numSphereInstances == 0 || m_numSphereIndices == 0) {
+        return;
+    }
+
+    Eigen::Matrix4f I4 = Eigen::Matrix4f::Identity();
+    Eigen::Matrix3f I3 = Eigen::Matrix3f::Identity();
+    shader->setUniform("cube", 0);
+    shader->setUniform("model", I4);
+    shader->setUniform("inverseTransposeModel", I3);
+    shader->setUniform("red", 1.0f);
+    shader->setUniform("green", 1.0f);
+    shader->setUniform("blue", 1.0f);
+    shader->setUniform("alpha", 1.0f);
+    shader->setUniform("renderMode", 1);
+    shader->setUniform("sphereScale", m_sphereScale);
+
+    glBindVertexArray(m_sphereVao);
+    glDrawElementsInstanced(GL_TRIANGLES, m_numSphereIndices, GL_UNSIGNED_INT, reinterpret_cast<void *>(0), m_numSphereInstances);
     glBindVertexArray(0);
 }

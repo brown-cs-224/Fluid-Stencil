@@ -7,6 +7,8 @@
 struct GridCell
 {
     Eigen::Vector3f velocity = Eigen::Vector3f::Zero();
+    float density = 0.0f;
+    float pressure = 0.0f;
 };
 
 class Grid

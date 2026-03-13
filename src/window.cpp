@@ -240,18 +240,32 @@ void Window::renderUi()
         m_camera.toggleIsOrbiting();
     }
 
-    int mode = (m_gridRenderMode == GridRenderMode::GRID_CENTER) ? 0 : 1;
+    int mode = 0;
+    switch (m_gridRenderMode) {
+    case GridRenderMode::GRID_CENTER: mode = 0; break;
+    case GridRenderMode::VELOC: mode = 1; break;
+    case GridRenderMode::DENSITY: mode = 2; break;
+    case GridRenderMode::PRESSURE: mode = 3; break;
+    }
     ImGui::Text("Render Mode");
     ImGui::RadioButton("Grid Centers", &mode, 0);
     ImGui::RadioButton("Velocity", &mode, 1);
-    m_gridRenderMode = (mode == 0) ? GridRenderMode::GRID_CENTER : GridRenderMode::VELOC;
+    ImGui::RadioButton("Density", &mode, 2);
+    ImGui::RadioButton("Pressure", &mode, 3);
+    switch (mode) {
+    case 0: m_gridRenderMode = GridRenderMode::GRID_CENTER; break;
+    case 1: m_gridRenderMode = GridRenderMode::VELOC; break;
+    case 2: m_gridRenderMode = GridRenderMode::DENSITY; break;
+    case 3: m_gridRenderMode = GridRenderMode::PRESSURE; break;
+    default: break;
+    }
 
     ImGui::Separator();
     ImGui::Text("Controls");
     ImGui::Text("WASD + R/F: move");
     ImGui::Text("Mouse drag: orbit");
     ImGui::Text("Scroll: zoom");
-    ImGui::Text("1/2: render mode");
+    ImGui::Text("1/2/3/4: render mode");
     ImGui::Text("P: pause");
     ImGui::End();
 }
@@ -286,6 +300,8 @@ void Window::onKey(int key, int action)
         case GLFW_KEY_R: m_vertical += kSpeed; break;
         case GLFW_KEY_1: m_gridRenderMode = GridRenderMode::GRID_CENTER; break;
         case GLFW_KEY_2: m_gridRenderMode = GridRenderMode::VELOC; break;
+        case GLFW_KEY_3: m_gridRenderMode = GridRenderMode::DENSITY; break;
+        case GLFW_KEY_4: m_gridRenderMode = GridRenderMode::PRESSURE; break;
         case GLFW_KEY_C: m_camera.toggleIsOrbiting(); break;
         case GLFW_KEY_ESCAPE: glfwSetWindowShouldClose(m_window, GLFW_TRUE); break;
         default: break;
