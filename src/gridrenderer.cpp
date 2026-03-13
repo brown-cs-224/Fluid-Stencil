@@ -38,6 +38,19 @@ Vector3f toRenderSpaceCenter(const Grid &grid, int i, int j, int k)
     const float fz = (static_cast<float>(k) + 0.5f) / static_cast<float>(grid.nz);
     return Vector3f(2.f * fx - 1.f, 2.f * fy - 1.f, 2.f * fz - 1.f);
 }
+
+Vector3f toRenderSpacePosition(const Grid &grid, const Vector3f &pos)
+{
+    const float sx = static_cast<float>(grid.nx) * grid.cellSize;
+    const float sy = static_cast<float>(grid.ny) * grid.cellSize;
+    const float sz = static_cast<float>(grid.nz) * grid.cellSize;
+
+    const float fx = sx > 0.0f ? (pos.x() / sx) : 0.0f;
+    const float fy = sy > 0.0f ? (pos.y() / sy) : 0.0f;
+    const float fz = sz > 0.0f ? (pos.z() / sz) : 0.0f;
+
+    return Vector3f(2.f * fx - 1.f, 2.f * fy - 1.f, 2.f * fz - 1.f);
+}
 }
 
 GridRenderer::GridRenderer()
@@ -49,10 +62,13 @@ GridRenderer::GridRenderer()
       m_sphereVbo(0),
       m_sphereIbo(0),
       m_instanceVbo(0),
+      m_particlesVao(0),
+      m_particlesVbo(0),
       m_numPointVertices(0),
       m_numArrowVertices(0),
       m_numSphereIndices(0),
-      m_numSphereInstances(0)
+      m_numSphereInstances(0),
+      m_numParticles(0)
 {
 }
 
@@ -61,6 +77,7 @@ void GridRenderer::init()
     initDomainCube();
     initDebugGeometryBuffers();
     initSphereGeometry();
+    initParticleBuffers();
 }
 
 void GridRenderer::draw(Shader *shader, const Grid &grid, GridRenderMode mode)
@@ -90,6 +107,12 @@ void GridRenderer::draw(Shader *shader, const Grid &grid, GridRenderMode mode)
 void GridRenderer::update(double seconds)
 {
     
+}
+
+void GridRenderer::drawParticles(Shader *shader, const Grid &grid, const std::vector<Particle> &particles)
+{
+    uploadParticles(grid, particles);
+    drawParticlePoints(shader);
 }
 
 void GridRenderer::initDomainCube()
@@ -219,6 +242,22 @@ void GridRenderer::initSphereGeometry()
     glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(InstanceData), reinterpret_cast<void *>(3 * sizeof(GLfloat)));
     glVertexAttribDivisor(3, 1);
 
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void GridRenderer::initParticleBuffers()
+{
+    glGenVertexArrays(1, &m_particlesVao);
+    glGenBuffers(1, &m_particlesVbo);
+
+    glBindVertexArray(m_particlesVao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_particlesVbo);
+    glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(DebugVertex), reinterpret_cast<void *>(0));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(DebugVertex), reinterpret_cast<void *>(3 * sizeof(GLfloat)));
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
@@ -387,6 +426,28 @@ void GridRenderer::uploadScalarSpheres(const Grid &grid, bool useDensity)
     m_sphereScale = 0.3f * cellMin;
 }
 
+void GridRenderer::uploadParticles(const Grid &grid, const std::vector<Particle> &particles)
+{
+    std::vector<DebugVertex> vertices;
+    vertices.reserve(particles.size());
+
+    for (const auto &p : particles) {
+        const Vector3f c = toRenderSpacePosition(grid, p.position);
+        vertices.push_back({c.x(), c.y(), c.z(), 0.0f, 0.0f, 0.0f});
+    }
+
+    m_numParticles = static_cast<GLsizei>(vertices.size());
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_particlesVbo);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        static_cast<GLsizeiptr>(vertices.size() * sizeof(DebugVertex)),
+        vertices.data(),
+        GL_DYNAMIC_DRAW
+    );
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
 void GridRenderer::drawCellCenters(Shader *shader)
 {
     if (m_numPointVertices == 0) {
@@ -430,6 +491,29 @@ void GridRenderer::drawVelocityArrows(Shader *shader)
 
     glBindVertexArray(m_arrowsVao);
     glDrawArrays(GL_LINES, 0, m_numArrowVertices);
+    glBindVertexArray(0);
+}
+
+void GridRenderer::drawParticlePoints(Shader *shader)
+{
+    if (m_numParticles == 0) {
+        return;
+    }
+
+    Eigen::Matrix4f I4 = Eigen::Matrix4f::Identity();
+    Eigen::Matrix3f I3 = Eigen::Matrix3f::Identity();
+    shader->setUniform("cube", 0);
+    shader->setUniform("model", I4);
+    shader->setUniform("inverseTransposeModel", I3);
+    shader->setUniform("red", 0.95f);
+    shader->setUniform("green", 0.95f);
+    shader->setUniform("blue", 0.95f);
+    shader->setUniform("alpha", 1.0f);
+    shader->setUniform("renderMode", 2);
+
+    glPointSize(3.0f);
+    glBindVertexArray(m_particlesVao);
+    glDrawArrays(GL_POINTS, 0, m_numParticles);
     glBindVertexArray(0);
 }
 

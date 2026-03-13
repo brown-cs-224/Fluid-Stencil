@@ -3,8 +3,24 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <random>
 
 using namespace Eigen;
+
+namespace
+{
+std::mt19937 &particleRng()
+{
+    static std::mt19937 rng(1337);
+    return rng;
+}
+
+float random01()
+{
+    static std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+    return dist(particleRng());
+}
+}
 
 Simulation::Simulation(Grid &grid) 
     : m_grid(grid)
@@ -44,6 +60,7 @@ void Simulation::init()
         }
     }
 
+    initParticles();
     initGround();
 }
 
@@ -96,6 +113,8 @@ void Simulation::update(double seconds)
             }
         }
     }
+
+    advectParticles(static_cast<float>(seconds));
 }
 
 void Simulation::draw(Shader *shader)
@@ -110,4 +129,117 @@ void Simulation::toggleWire()
 void Simulation::initGround()
 {
 
+}
+
+void Simulation::initParticles()
+{
+    m_particles.resize(std::max(1, m_particleCount));
+    m_spawnCursor = 0;
+    for (auto &particle : m_particles) {
+        respawnParticle(particle);
+    }
+}
+
+void Simulation::advectParticles(float seconds)
+{
+    if (m_particles.empty()) {
+        return;
+    }
+
+    const Vector3f domainMin(0.0f, 0.0f, 0.0f);
+    const Vector3f domainMax(
+        static_cast<float>(m_grid.nx) * m_grid.cellSize,
+        static_cast<float>(m_grid.ny) * m_grid.cellSize,
+        static_cast<float>(m_grid.nz) * m_grid.cellSize
+    );
+
+    static constexpr float kMaxAge = 6.0f;
+    static constexpr float kSpeedScale = 0.6f;
+
+    for (auto &particle : m_particles) {
+        const Vector3f vel = m_grid.sampleVelocity(particle.position);
+        particle.position += vel * (seconds * kSpeedScale);
+        particle.age += seconds;
+
+        if (particle.age > kMaxAge
+            || particle.position.x() < domainMin.x() || particle.position.y() < domainMin.y() || particle.position.z() < domainMin.z()
+            || particle.position.x() > domainMax.x() || particle.position.y() > domainMax.y() || particle.position.z() > domainMax.z()) {
+            respawnParticle(particle);
+        }
+    }
+}
+
+void Simulation::respawnParticle(Particle &particle)
+{
+    const Vector3f domainCenter(
+        0.5f * static_cast<float>(m_grid.nx) * m_grid.cellSize,
+        0.5f * static_cast<float>(m_grid.ny) * m_grid.cellSize,
+        0.5f * static_cast<float>(m_grid.nz) * m_grid.cellSize
+    );
+
+    const float spanX = static_cast<float>(m_grid.nx) * m_grid.cellSize;
+    const float spanY = static_cast<float>(m_grid.ny) * m_grid.cellSize;
+    const float spanZ = static_cast<float>(m_grid.nz) * m_grid.cellSize;
+
+    Vector3f position = domainCenter;
+    switch (m_particleSpawnMode) {
+    case ParticleSpawnMode::CELL_CENTERS: {
+        const int cellCount = std::max(1, m_grid.nx * m_grid.ny * m_grid.nz);
+        const int idx = m_spawnCursor++ % cellCount;
+        const int i = idx % m_grid.nx;
+        const int j = (idx / m_grid.nx) % m_grid.ny;
+        const int k = idx / (m_grid.nx * m_grid.ny);
+        position = m_grid.cellCenter(i, j, k);
+        break;
+    }
+    case ParticleSpawnMode::RANDOM_IN_CELL: {
+        const int i = static_cast<int>(random01() * m_grid.nx);
+        const int j = static_cast<int>(random01() * m_grid.ny);
+        const int k = static_cast<int>(random01() * m_grid.nz);
+        const Vector3f center = m_grid.cellCenter(i, j, k);
+        const float half = 0.5f * m_grid.cellSize;
+        const Vector3f jitter(
+            (random01() * 2.0f - 1.0f) * half,
+            (random01() * 2.0f - 1.0f) * half,
+            (random01() * 2.0f - 1.0f) * half
+        );
+        position = center + jitter;
+        break;
+    }
+    case ParticleSpawnMode::VORTEX_RING:
+    default: {
+        const float radius = 0.25f * std::min(spanX, spanZ);
+        const float u = random01();
+        const float v = random01();
+        const float w = random01();
+        const float angle = v * 6.28318530718f;
+        const float r = radius * std::sqrt(u);
+        const float x = domainCenter.x() + r * std::cos(angle);
+        const float z = domainCenter.z() + r * std::sin(angle);
+        const float y = 0.25f * spanY + w * 0.5f * spanY;
+        position = Vector3f(x, y, z);
+        break;
+    }
+    }
+
+    particle.position = position;
+    particle.age = 0.0f;
+}
+
+void Simulation::setParticleCount(int count)
+{
+    m_particleCount = std::max(1, count);
+    resetParticles();
+}
+
+void Simulation::setParticleSpawnMode(ParticleSpawnMode mode)
+{
+    m_particleSpawnMode = mode;
+    resetParticles();
+}
+
+void Simulation::resetParticles()
+{
+    m_particles.clear();
+    initParticles();
 }

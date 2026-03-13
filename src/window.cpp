@@ -54,7 +54,9 @@ Window::Window(int width, int height, const char *title)
       m_lastX(0.0),
       m_lastY(0.0),
       m_capture(false),
-      m_paused(false)
+      m_paused(false),
+      m_showParticles(true),
+      m_velocityOverlay(false)
 {
 }
 
@@ -213,6 +215,12 @@ void Window::renderScene()
     m_shader->setUniform("proj", m_camera.getProjection());
     m_shader->setUniform("view", m_camera.getView());
     m_gridRenderer.draw(m_shader, m_grid, m_gridRenderMode);
+    if (m_velocityOverlay && m_gridRenderMode != GridRenderMode::VELOC) {
+        m_gridRenderer.draw(m_shader, m_grid, GridRenderMode::VELOC);
+    }
+    if (m_showParticles) {
+        m_gridRenderer.drawParticles(m_shader, m_grid, m_sim.particles());
+    }
     m_shader->unbind();
 }
 
@@ -266,7 +274,26 @@ void Window::renderUi()
     ImGui::Text("Mouse drag: orbit");
     ImGui::Text("Scroll: zoom");
     ImGui::Text("1/2/3/4: render mode");
+    ImGui::Text("Space: respawn particles");
     ImGui::Text("P: pause");
+    ImGui::Separator();
+    ImGui::Text("Particles");
+    ImGui::Checkbox("Show Particles", &m_showParticles);
+    ImGui::Checkbox("Overlay Velocity", &m_velocityOverlay);
+
+    int particleCount = m_sim.particleCount();
+    if (ImGui::SliderInt("Particle Count", &particleCount, 200, 10000)) {
+        m_sim.setParticleCount(particleCount);
+    }
+
+    int spawnMode = static_cast<int>(m_sim.particleSpawnMode());
+    ImGui::Text("Spawn Mode");
+    ImGui::RadioButton("Vortex Ring", &spawnMode, 0);
+    ImGui::RadioButton("Cell Centers", &spawnMode, 1);
+    ImGui::RadioButton("Random In Cell", &spawnMode, 2);
+    if (spawnMode != static_cast<int>(m_sim.particleSpawnMode())) {
+        m_sim.setParticleSpawnMode(static_cast<ParticleSpawnMode>(spawnMode));
+    }
     ImGui::End();
 }
 
@@ -302,6 +329,7 @@ void Window::onKey(int key, int action)
         case GLFW_KEY_2: m_gridRenderMode = GridRenderMode::VELOC; break;
         case GLFW_KEY_3: m_gridRenderMode = GridRenderMode::DENSITY; break;
         case GLFW_KEY_4: m_gridRenderMode = GridRenderMode::PRESSURE; break;
+        case GLFW_KEY_SPACE: m_sim.resetParticles(); break;
         case GLFW_KEY_C: m_camera.toggleIsOrbiting(); break;
         case GLFW_KEY_ESCAPE: glfwSetWindowShouldClose(m_window, GLFW_TRUE); break;
         default: break;

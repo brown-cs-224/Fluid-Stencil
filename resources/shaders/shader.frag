@@ -56,6 +56,10 @@ void main() {
         fragColor = vec4(c, 1.0);
         return;
     }
+    if (renderMode == 2) {
+        fragColor = vec4(red, green, blue, alpha);
+        return;
+    }
 
     vec2 vel = vec2(color[0], color[1]);
     vec3 c = boysSurfaceColor(vel, maxVelocity);

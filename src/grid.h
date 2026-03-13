@@ -27,6 +27,7 @@ public:
     const GridCell &at(int i, int j, int k) const;
 
     Eigen::Vector3f cellCenter(int i, int j, int k) const;
+    Eigen::Vector3f sampleVelocity(const Eigen::Vector3f &position) const;
 
 private:
     int index(int i, int j, int k) const;

@@ -61,4 +61,6 @@ private:
 
     bool m_capture;
     bool m_paused;
+    bool m_showParticles;
+    bool m_velocityOverlay;
 };
