@@ -268,15 +268,7 @@ void Window::renderUi()
     default: break;
     }
 
-    ImGui::Separator();
-    ImGui::Text("Controls");
-    ImGui::Text("WASD + R/F: move");
-    ImGui::Text("Mouse drag: orbit");
-    ImGui::Text("Scroll: zoom");
-    ImGui::Text("1/2/3/4: render mode");
-    ImGui::Text("Space: respawn particles");
-    ImGui::Text("P: pause");
-    ImGui::Separator();
+
     ImGui::Text("Particles");
     ImGui::Checkbox("Show Particles", &m_showParticles);
     ImGui::Checkbox("Overlay Velocity", &m_velocityOverlay);
@@ -294,6 +286,16 @@ void Window::renderUi()
     if (spawnMode != static_cast<int>(m_sim.particleSpawnMode())) {
         m_sim.setParticleSpawnMode(static_cast<ParticleSpawnMode>(spawnMode));
     }
+
+    ImGui::Separator();
+    ImGui::Text("Controls");
+    ImGui::Text("WASD + R/F: move");
+    ImGui::Text("Mouse drag: orbit");
+    ImGui::Text("Scroll: zoom");
+    ImGui::Text("1/2/3/4: render mode");
+    ImGui::Text("Space: respawn particles");
+    ImGui::Text("P: pause");
+    ImGui::Separator();
     ImGui::End();
 }
 
