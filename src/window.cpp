@@ -6,6 +6,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <iostream>
@@ -244,6 +245,9 @@ void Window::renderUi()
     ImGui::Begin("Simulation");
     ImGui::Text("FPS: %.1f", io.Framerate);
     ImGui::Checkbox("Paused", &m_paused);
+    if (ImGui::Button("Reset Grid")) {
+        m_sim.resetGridToInitial();
+    }
     if (ImGui::Button("Toggle Orbit")) {
         m_camera.toggleIsOrbiting();
     }
@@ -283,8 +287,18 @@ void Window::renderUi()
     ImGui::RadioButton("Vortex Ring", &spawnMode, 0);
     ImGui::RadioButton("Cell Centers", &spawnMode, 1);
     ImGui::RadioButton("Random In Cell", &spawnMode, 2);
+    ImGui::RadioButton("Sphere Volume", &spawnMode, 3);
     if (spawnMode != static_cast<int>(m_sim.particleSpawnMode())) {
         m_sim.setParticleSpawnMode(static_cast<ParticleSpawnMode>(spawnMode));
+    }
+    if (m_sim.particleSpawnMode() == ParticleSpawnMode::SPHERE_VOLUME) {
+        float radius = m_sim.particleSpawnSphereRadius();
+        const float maxRadius = 0.5f * std::min(m_grid.nx * m_grid.cellSize,
+                                                std::min(m_grid.ny * m_grid.cellSize,
+                                                         m_grid.nz * m_grid.cellSize));
+        if (ImGui::SliderFloat("Sphere Radius", &radius, 0.0f, maxRadius)) {
+            m_sim.setParticleSpawnSphereRadius(radius);
+        }
     }
 
     ImGui::Separator();
@@ -294,6 +308,7 @@ void Window::renderUi()
     ImGui::Text("Scroll: zoom");
     ImGui::Text("1/2/3/4: render mode");
     ImGui::Text("Space: respawn particles");
+    ImGui::Text("O: reset grid");
     ImGui::Text("P: pause");
     ImGui::Separator();
     ImGui::End();
@@ -332,6 +347,7 @@ void Window::onKey(int key, int action)
         case GLFW_KEY_3: m_gridRenderMode = GridRenderMode::DENSITY; break;
         case GLFW_KEY_4: m_gridRenderMode = GridRenderMode::PRESSURE; break;
         case GLFW_KEY_SPACE: m_sim.resetParticles(); break;
+        case GLFW_KEY_O: m_sim.resetGridToInitial(); break;
         case GLFW_KEY_C: m_camera.toggleIsOrbiting(); break;
         case GLFW_KEY_ESCAPE: glfwSetWindowShouldClose(m_window, GLFW_TRUE); break;
         default: break;
