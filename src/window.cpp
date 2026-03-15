@@ -158,6 +158,13 @@ bool Window::init()
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     ImGui::StyleColorsDark();
 
+    // Scale font globally
+    io.FontGlobalScale = 1.5f;
+
+    // Scale padding, spacing, etc.
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.ScaleAllSizes(1.5f);
+
     ImGui_ImplGlfw_InitForOpenGL(m_window, false);
     ImGui_ImplOpenGL3_Init("#version 330");
 
@@ -252,6 +259,7 @@ void Window::renderUi()
         m_camera.toggleIsOrbiting();
     }
 
+    ImGui::Separator();
     int mode = 0;
     switch (m_gridRenderMode) {
     case GridRenderMode::GRID_CENTER: mode = 0; break;
@@ -273,7 +281,8 @@ void Window::renderUi()
     }
 
 
-    ImGui::Text("Particles");
+    ImGui::Separator();
+    ImGui::Text("Particle Settings");
     ImGui::Checkbox("Show Particles", &m_showParticles);
     ImGui::Checkbox("Overlay Velocity", &m_velocityOverlay);
 
