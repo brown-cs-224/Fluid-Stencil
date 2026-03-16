@@ -1,14 +1,11 @@
-# Assignment 3: Finite Element Simulation (FEM)
+# Assignment 4: Simulation (Sim) -- Fluids Option
 
-In this assignment, you’ll animate deformable solid objects using the Finite Element Method (FEM). The name “Finite Element Method” comes from the fact that this approach divides a continuous chunk of material into a mesh made up of a finite number of discrete elements (in this case, you’ll use tetrahedra). FEM allows for the simulation of physically-based materials in a principled way (as opposed to ad-hoc methods such as spring-and-mass simulations). You will implement the core features needed for a basic deformable object simulation (e.g. force computation, time integration, simple collision resolution) plus one or more extra features. To show off what your code can do, you’ll submit one or more videos demonstrating your simulator in action.
+In this assignment, you'll animate a gaseous incompressible fluid by simulating the evolution of a fluid velocity field on an Eulerian grid. Following the "Stable Fluids" paper, you'll implement external forces, advection, diffusion, and a pressure projection step which maintains incompressibility. To show off what your code can do, you’ll submit one or more videos demonstrating your simulator in action.
 
 ## Relevant Reading
 
 - The lecture slides!
-- [Baraff and Witkin’s course notes](https://www.cs.cmu.edu/~baraff/sigcourse/) on physically-based modeling are a good reference for the basics of dynamics and time integration.
-- [O’Brien and Hodgins](http://graphics.berkeley.edu/papers/Obrien-GMA-1999-08/Obrien-GMA-1999-08.pdf) provide a good introduction to FEM fundamentals for graphics (Sections 1 - 3).
-- [Adam Bargteil’s Finite Element Notes](https://cal.cs.umbc.edu/Courses/CS6967-F08/FE-notes.pdf) are a nice supplement.
-- [This handout](https://web.stanford.edu/class/cs205b/lectures/lecture7.pdf) on computing strain and stress may also be informative.
+- [Stable fluids](https://pages.cs.wisc.edu/~chaol/data/cs777/stam-stable_fluids.pdf) by Jos Stam
 
 ## Requirements
 
@@ -16,19 +13,22 @@ This assignment is out of **100 points**.
 
 Your simulator must implement at least the following features:
 
-- Extract the surface mesh from your tetrahedral mesh **(10 points)**
-- Compute and apply force due to gravity **(5 points)**
-- Compute and apply internal elastic forces **(30 points)**
-  - Compute Green’s strain for each element
-  - Compute the stress for each element
-  - Compute per-node forces
-  - You can assume a lumped-mass model for your mesh (i.e. constant density within an element, mass of element distributed evenly to its four vertices).
-- Compute and apply internal viscous damping forces **(10 points)**
-- Resolve collisions **(10 points)**
-  - You must implement collision between the mesh and a ground plane, as well as at least one other type of obstacle (e.g. spheres).
-  - The simple ‘penalty force’ method described in Section 3.3 of [O’Brien and Hodgins](http://graphics.berkeley.edu/papers/Obrien-GMA-1999-08/Obrien-GMA-1999-08.pdf) can work, but it's not terribly stable.
-  - A better option is to do the following for every tet vertex that inter-penetrates a collidier: (1) Project the vertex out of the collider, (2) Decompose the vertex's velocity into a a _normal component_ (i.e. parallel to surface normal of the collider at the point of intersection and a _tangential component_ (perpendicular to the collider normal), (3) Reflect the normal component of the velocity and scale by some coefficient of restitution constant between 0 and 1, (4) Scale the tangential component of the velocity by some friction constant between 0 and 1.
-- Integrate your simulation forward in time using the explicit [midpoint method](https://www.cs.cmu.edu/~baraff/sigcourse/notesb.pdf) **(10 points)** (regular Euler integration recommended to start with)
+- External forces:
+    - **(5 points)** A gravitational force that causes the fluid to settle near the bottom of the volume over time.
+    - **(5 points)**: At least one other form of external force. This could be an impulse force in response to a user click/keypress, or anything else that results in visually-interesting motion.
+- Semi-Lagrangian advection:
+    - **(5 points)** Backtracing according to the current velocity field.
+    - **(10 points)** Trilinear interpolation to compute the value of the velocity field at the backtraced location.
+- Diffusion:
+    - **(15 points)** Set up the sparse linear system
+    - **(10 points)** Solve the sparse linear system
+- Pressure projection
+    - **(10 points)** Set up the sparse linear system
+    - **(10 points)** Solve the sparse linear system and subtract the gradient of the solution from the velocity field
+- Boundary conditions:
+    - **(10 points)** Ensure the normal component of the velocity field is zero at the boundaries of the simulation volume, so fluid does not 'escape' the volume.
+- Particle advection:
+    - **(5 points)** Advect particles through the velocity field and visualize them (the stencil code is set up for the latter; see below).
 - Video **(10 points)**
   - You must submit at least one video demonstrating your simulator in action. The video(s) must demonstrate all of the features you have implemented (including any extra features). Particularly creative and/or nicely-rendered animations may receive extra credit. Think about interesting scenarios you could set up. Please use a standard format and codec for your video files (e.g. .mp4 with the H264 codec).
     - There are a few different ways you might go about making such videos:
@@ -38,52 +38,30 @@ Your simulator must implement at least the following features:
   - To turn a set of frame images into a video, you can use [FFMPEG](https://hamelot.io/visualization/using-ffmpeg-to-convert-a-set-of-images-into-a-video/).
 - README **(5 points)**
   - Your README should explain your logic for
-    - extracting the surface mesh
-    - computing and applying internal forces
-    - collision resolution
-    - your explicit integration method
-    - and any extra features you choose to implement
+    - the additional external force(s) you implemented
+    - your implementation of particle backtracing
+    - your implementation of boundary conditions
+    - and any extra features you chose to implement
   - Explanations should be 3 sentences each maximum
   - Link the starting lines (on GitHub) of your implementation of these features
-    - Extract the surface mesh from your tetrahedral mesh
-    - Compute and apply force due to gravity
-    - Compute and apply internal elastic forces
-    - Compute and apply internal viscous damping forces
-    - Resolve collisions
-    - Explicit midpoint method
-    - Any extra features
+    - The 'add external forces step'
+    - The semi-Lagrangian advection step
+    - The diffusion step
+    - The pressure projection step
+    - Where boundary conditions are defined
   - You should also embed your videos into the README file
 
-Successfully implementing all of the requirements results in a total of **90/100 points**.
+Successfully implementing all of the requirements results in a total of **95/100 points**.
 To score **100/100** (or more!), you’ll need to implement some extra features.
 
 ### Extra Features
 
 Each of the following features that you implement will earn you extra points. The features are ordered roughly by difficulty of implementation.
 
-- Share a cool tet mesh on Slack **(2 points)**
-- Make the visualizer pretty **(5 points)**
-  - Miss programming shaders? Modify shader.frag to add some fancy effects. Skyboxes, shadows, FBO hacks, and more are all welcome.
-- A higher-order explicit integrator **(5 points)**
-  - This will allow you to take larger simulation timesteps.
-  - Runge-Kutta 4
-  - [Verlet integration](https://resources.saylor.org/wwwresources/archived/site/wp-content/uploads/2011/06/MA221-6.1.pdf)
-  - You will be asked to show your code implementation during grading.
-- Adaptive time stepping **(5 points)**
-  - Take the largest time step you can take while remaining within some error threshold.
-  - [Baraff and Witkin’s](https://www.cs.cmu.edu/~baraff/sigcourse/notesb.pdf) notes are helpful here.
-  - You will be asked to show your code implementation during grading.
-- Parallelize your code **(5 points)**
-  - Many simulator operations are ‘embarrassingly parallel’ (force computations, integrator steps, etc.)
-  - Even something as simple as [OpenMP’s parallel for loop](http://supercomputingblog.com/openmp/tutorial-parallel-for-loops-with-openmp/) can buy you significant speedups, if applied in the right places.
-  - You should record videos comparing execution of your code (with/without) parallelization on complicated meshes. You may find some good tetrahedral meshes [here](https://github.com/wildmeshing/fTetWild?tab=readme-ov-file) (please go to Dataset section).
-- Interactivity **(10 points)**
-  - Allow the user to poke, push, drag, etc. a deformable mesh.
-  - Please record a video of interating with the mesh.
-- Self collisions **(15 points)**
-  - Or, collisions between two deformable meshes.
-  - The [O’Brien and Hodgins paper](http://graphics.berkeley.edu/papers/Obrien-GMA-1999-08/Obrien-GMA-1999-08.pdf) has some suggestions for how to do this.
-  - Please record a video showing the collisions.
+- **(XX points)** Make a cool alternative initial set of particles (in the shape of the Stanford bunny, perhaps?) and share it with the class on Slack (as e.g. a .ply or .xyz) file.
+- **(XX points)** Implement additional types of external forces. Each must be nontrivially different from all other types of external forces you have implemented.
+- **(XX points)** Implement different boundary conditions. For example, the toroidal boundary conditions mentioned in the Stable fluids paper.
+- **(XX points)** Add obstacles inside the volume that the fluid must flow around. The simplest way to do this is to make certain interior grid cells be treated as boundary cells.
 - Something else!
   - This list is not meant to be exhaustive--if you’ve got another advanced feature in mind, go for it! (though you may want to ask a TA or the instructor first if you’re concerned about whether the idea is feasible)
 
