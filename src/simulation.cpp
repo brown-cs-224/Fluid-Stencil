@@ -83,7 +83,9 @@ void Simulation::update(double seconds)
     advectParticles(static_cast<float>(seconds));
 }
 
-//An example simulation to
+//A simulation PURELY for understanding the Visual Interface.
+//It's useful to understand how to write values into the grid data structure.
+//Not Physically Plausible, do not be inspired :)
 void Simulation::vortexSim(double seconds){
     const Vector3f domainCenter(
         0.5f * m_grid.nx * m_grid.cellSize,
