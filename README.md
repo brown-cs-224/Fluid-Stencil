@@ -152,7 +152,12 @@ When the program first loads, you should see a velocity field pointing up along 
 
 ### Implementation Tips:
 
-- Start with the existing Collocated Grid for your simulation (velocity at grid center) and then move to the MAC representation.
+- We recommend implementing the terms in the following order:
+    - Forces
+    - Advection
+    - Projection
+    - Diffusion
+- Start with the existing Collocated Grid for your simulation (velocity at grid center) and then move to the MAC representation. MAC is more numerically stable, but we recommend starting with the Collocated Grid.
 - Start simple. Begin by applying a constant force, such as gravity, to the velocity field.
 - Test gravity first. If gravity is implemented correctly, particles should gradually accelerate downward and settle toward the bottom of the simulation domain. Remember to apply the boundary conditions!
 - Build the solver incrementally. Implement and test each step of the algorithm (forces, advection, viscosity, projection) separately before combining them.
