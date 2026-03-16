@@ -97,63 +97,79 @@ These extra features are significantly more challenging to implement, and they i
 
 ### Resources
 
-Feel free to use this stencil code to get started.
-
-This includes a simple interactive 3D viewer for visualizing (and dynamically updating) tetrahedral meshes, as well as several example tetrahedral mesh files you can load.
-
-These files are in the .mesh format, a line-by-line file format that resembles the .obj file format. Lines come in one of two types:
-
-- `v x y z` -- a vertex at location (x, y, z).
-- `t i1 i2 i3 i4` -- a tetrahedron whose vertices are located at indices i1, i2, i3, and i4 in the list of vertices.
-
-If you want to create new tetrahedral meshes, you can do so using one of the following software packages:
-
-- [fTetWild](https://github.com/wildmeshing/fTetWild)
-- [Netgen](https://sourceforge.net/projects/netgen-mesher/)
-- [Tetgen](http://wias-berlin.de/software/index.jsp?id=TetGen&lang=1)
-- [Quartet](https://github.com/crawforddoran/quartet)
-
-These output their own various file formats (as there is, alas, less standardization in tet mesh file formats than for tri meshes), so you’d need to convert those to the .mesh format.
 
 ## Starter Code
 
-The starter code in this repo provides a simple 3D viewer for tetrahedral mesh simulations. **After cloning the repo locally, you'll need to run `git submodule update --init --recursive` to update the Eigen submodule.**
+The starter code in this repo provides a Grid data structure and a 3D viewer for visualizing your fluid simulations. **After cloning the repo locally, you'll need to run `git submodule update --init --recursive` to update the submodules.**
 
-As given, the starter code will load up and visualize a single tetrahedron. Your job is to modify the code to load arbitrary meshes (e.g. the ones in `/example-meshes`), extract their surface meshes for visualization, and to compute simulation time step updates to the vertex positions of the mesh. Note: Your simulation does not have to support the cone mesh to receive full credit.
+### m_Grid
+
+Look at `src/grid.h`. This class represents the grid that you will update. It is initialized, in `src/window.cpp`, with a dimension of 16 x 16 x 16. The grid object is passed by reference to your simulation class (`src/simulation.cpp`). You should write the final velocity into this grid. The same reference is then passed to the renderer (`src/gridrenderer.cpp`), which visualizes the current state of your field.
+
+#### IMPORTANT 
+The velocity field stored in the grid cells of m_grid is what gets rendered and is used to advect the visualization particles. However, your simulation does not necessarily need to compute velocity in this exact representation internally. 
+
+Fluid quantities can be stored on grids in different ways. In a collocated grid, values like velocity and pressure are stored at the center of each grid cell. The grid provided in this assignment uses a collocated grid, so the velocity stored in each GridCell represents the cell-centered velocity.
+
+Another common approach is a MAC (Marker-and-Cell) grid, where velocity components are stored on the faces of cells instead of the center. This layout is often used in fluid solvers to better enforce incompressibility.
+
+For this assignment, the velocity stored in m_grid is what will be rendered and used to advect particles.
+
+The grid is initialized with default values for velocity. You will also note that there are other fields in the struct. Look at the debugging section to see how they might be useful! You don't have to explicitly update these values during your sim but they can be useful for debugging!
+
+#### How do I update the grid?
 
 You'll want to look at `src/simulation.cpp` to get started, as that's the only file you need to change (although you'll probably make several of your own new files, too).
-You also might want to look at `src/glwidget.cpp`, if you're interested in adding new interactivity/controls to the program.
+You also might want to look at `src/window.cpp`, if you're interested in adding new interactivity/controls to the program (specifically for adding external forces). `src/gridrenderer.cpp` handles rendering!
 
-Speaking of controls: the controls offered by the starter code are:
+The update function (in `src/simulation.cpp`) gets called every frame, and your grid gets updated here.
 
+Look at the vortexSim() function in `src/simulation.cpp`. This function does not update the grid in a physically plausible way, but it can be a good way of understanding how to update the grid. Comment in the call to this function in the update function (in `src/simulation.cpp`). You will be able to render the updated field. Spawn some particles to get a feel for advection. Again, this is not a physically plausible simulation; it is your goal to update our field in a physically plausible way by solving the Navier Stokes Equation.
+
+### The Visualizer
+
+#### The Render Modes:
+- Grid Centers: Visualizes the center of the grid cells
+- Velocity (Important): Visualizes the velocity field of the grid for the simulation
+- Debug Density: Visualizes the density field of the grid for debugging 
+- Debug Pressure: Visualizes the pressure field of the grid for debugging
+
+#### Particle Settings:
+- Turn particles on/off, overlay velocity, set particle count
+- Play around with particle initialization. Sphere mode spawns particles in a sphere of adjustable radius
+
+#### Key Controls:
+
+Note: You might need to click on the render window after interacting with the UI for keys to work.
 - Move Camera: WASD
 - Look around: Click and hold mouse and drag
-- Toggle orbit mode: C (changes the camera from a first-person view to an orbiting camera a la what the Maya editor does)
-- Toggle between displaying the surface mesh and a wireframe of the full tet mesh: T
+- Toggle orbit mode: (changes the camera from a first-person view to an orbiting camera a la what the Maya editor does)
+- SPACE: Respawns particles for advection
+- P: Pauses the simulation
+- O: Resets the simulation to the initial velocity condition (so that you can start your simulation over!)
 
-When the program first loads, you should see a ground plane and a single tet floating in space.
-If the tet does not display: check the console output. Most likely the .mesh file failed to load because the file couldn't be found. You'll need to set the working directory in Qt Creator to be the root directory of this repository. To do that, select "Projects" on the left-hand sidebar in Qt Creator, select "Run" under the "Build & Run options", and enter the path to the repo root in the "Working directory" field.
+When the program first loads, you should see a velocity field pointing up along the Y-Axis. You can spawn particles to see them get advected along this velocity field. Play around with the particle initializations!
 
-### Implementation & Debugging Tips
+### Implementation Tips:
 
-- Start by simulating a single tetrahedron and verifying that everything works in that case.
-- If your mesh has no forces applied, the deformation gradient for each element should be the identity matrix.
-- A sanity check: try initializing the position of one or more vertices to be different than the rest configuration; verify that the mesh moves back to its rest state when you run the simulation.
-- See the lecture slides for tips on what to do if your simulation explodes.
-- Simulation will involve many parameters; you may find it helpful to use a config.ini file to set them then use QSettings [https://doc.qt.io/qt-6/qsettings.html] to extract them
-- The lecture slides contain a few examples of material parameters. If you want more, you can check out the tables given [here](https://www.efunda.com/materials/common_matl/Common_Matl.cfm?MatlPhase=Solid&MatlProp=Mechanical) and [here](http://web.mit.edu/16.20/homepage/3_Constitutive/Constitutive_files/module_3_no_solutions.pdf). Be aware that most of these materials are very stiff and will likely be difficult to simulate in a stable manner. [This Wikipedia page](https://en.wikipedia.org/wiki/Lam%C3%A9_parameters) lists formulas for converting between different types of material parameters. What you want are “Lamé's first parameter” (that’s λ) and “Shear modulus” (that’s μ).
-- Here’s a set of parameters that have worked for students in previous years (with midpoint and rk4 integrators for the sphere and ellipsoid and a timestep of 0.001):
-  - const Vector3f \_gravity = Vector3f(0.f, -.1f, 0.f);
-  - const float \_lambda = 1e3f; //incompressibility for the whole material
-  - const float \_mu = 1e3f; //rigidity for the whole material
-  - const float \_phi = 1e1f; //coefficients of viscosity
-  - const float \_psi = 1e1f;
-  - const float \_rho = 1200.f; //density
-- Use `const` and `assert` wherever possible.
+- Start with the existing Collocated Grid for your simulation (velocity at grid center) and then move to the MAC representation.
+- Start simple. Begin by applying a constant force, such as gravity, to the velocity field.
+- Test gravity first. If gravity is implemented correctly, particles should gradually accelerate downward and settle toward the bottom of the simulation domain. Remember to apply the boundary conditions!
+- Build the solver incrementally. Implement and test each step of the algorithm (forces, advection, viscosity, projection) separately before combining them.
+
+### Debugging Tips:
+
+- You will notice that alongside velocity, the grid can store two extra fields. While the simulation only computes velocity, **explicitly**, we can use these other properties to debug our fluid simulation.
+
+- Pressure: During the projection step of the Stable Fluids algorithm, you solve a Poisson equation to compute a pressure field that removes divergence from the velocity field. Store the computed pressure values in the grid cell struct and enable the pressure render mode in the UI. This allows you to visualize how pressure evolves during the simulation and can help diagnose issues with your projection step.
+
+- Density: Similar to advecting particles, advecting density is a great way to visualize the motion of the fluid. Implement an advection function that updates the density field using the velocity field, and write the resulting density values into the grid cell struct.
+
+- Divergence: After the projection step, the divergence term should be zero. Make sure that the divergence values are zero.
+
 - Check for uninitialized values.
-- Use Qt Creator's debugger.
 - **For numeric values that your simulation keeps track of (positions, velocities, forces, etc.), use** `double` **and** `Eigen::Vector3d` **instead of** `float` **and** `Eigen::Vector3f`**. The additional precision can have a big impact on your simulation's stability.**
-- **REMINDER: Your code will run much faster if you compile in Release mode ;)**
+- **REMINDER: Your code will run much faster if you compile in Release mode ;**
 
 ### Submission Instructions
 
@@ -161,24 +177,4 @@ Submit your branch of the Github classroom repository to the “Simulation” as
 
 ## Example Video
 
-- For the following example these parameters are used (Note: The video is compressed to gif and might not have the same frame rate with the real simulation):
-  - Eigen::Vector3d \_g = Eigen::Vector3d(0.0, -1.0, 0.0); // gravity
-  - double \_kFloor = 4e4; //penalty for node collision
-  - double \_lambda = 4e3; //incompressibility for the whole material
-  - double \_mu = 4e3; //rigidity for the whole material
-  - double \_phi = 100; //coefficients of viscosity
-  - double \_psi = 100;
-  - double \_density = 1200.0; //density
-  - timestep = 0.0003f;
-
-Single tetrahedron falling on the floor.
-
-![Alt Text](example-video/tet.gif)
-
-Cube falling on the floor.
-
-![Alt Text](example-video/cube.gif)
-
-Ellipsoid falling on the floor with fixed sphere.
-
-![Alt Text](example-video/ellipsoid.gif)
+- Reference solution coming soon!
