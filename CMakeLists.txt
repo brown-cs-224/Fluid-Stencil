@@ -77,6 +77,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     StaticGLEW
     glfw
     imgui
+    OpenGL::GL
 )
 
 # This allows you to `#include "Eigen/..."`
