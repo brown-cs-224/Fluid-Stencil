@@ -294,6 +294,9 @@ void Window::renderUi()
     int spawnMode = static_cast<int>(m_sim.particleSpawnMode());
     ImGui::Text("Spawn Mode");
     ImGui::RadioButton("Sphere Volume", &spawnMode, 3);
+    ImGui::RadioButton("Vortex Ring", &spawnMode, 0);
+    ImGui::RadioButton("Cell Centers", &spawnMode, 1);
+    ImGui::RadioButton("Random In Cell", &spawnMode, 2);
     if (spawnMode != static_cast<int>(m_sim.particleSpawnMode())) {
         m_sim.setParticleSpawnMode(static_cast<ParticleSpawnMode>(spawnMode));
     }
@@ -306,9 +309,6 @@ void Window::renderUi()
             m_sim.setParticleSpawnSphereRadius(radius);
         }
     }
-    ImGui::RadioButton("Vortex Ring", &spawnMode, 0);
-    ImGui::RadioButton("Cell Centers", &spawnMode, 1);
-    ImGui::RadioButton("Random In Cell", &spawnMode, 2);
 
     ImGui::Separator();
     ImGui::Text("Controls");
