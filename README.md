@@ -5,6 +5,7 @@ In this assignment, you'll animate a gaseous incompressible fluid by simulating 
 ## Relevant Reading
 
 - The lecture slides!
+- [Baraff and Witkin’s course notes](https://www.cs.cmu.edu/~baraff/sigcourse/) on physically-based modeling are a good reference for the basics of dynamics and time integration.
 - [Stable fluids](https://pages.cs.wisc.edu/~chaol/data/cs777/stam-stable_fluids.pdf) by Jos Stam
 
 ## Requirements
@@ -18,7 +19,7 @@ Your simulator must implement at least the following features:
     - **(5 points)**: At least one other form of external force. This could be an impulse force in response to a user click/keypress, or anything else that results in visually-interesting motion.
 - Semi-Lagrangian advection:
     - **(5 points)** Backtracing according to the current velocity field.
-    - **(10 points)** Trilinear interpolation to compute the value of the velocity field at the backtraced location.
+    - **(5 points)** Trilinear interpolation to compute the value of the velocity field at the backtraced location.
 - Diffusion:
     - **(15 points)** Set up the sparse linear system
     - **(10 points)** Solve the sparse linear system
@@ -31,10 +32,8 @@ Your simulator must implement at least the following features:
     - **(5 points)** Advect particles through the velocity field and visualize them (the stencil code is set up for the latter; see below).
 - Video **(10 points)**
   - You must submit at least one video demonstrating your simulator in action. The video(s) must demonstrate all of the features you have implemented (including any extra features). Particularly creative and/or nicely-rendered animations may receive extra credit. Think about interesting scenarios you could set up. Please use a standard format and codec for your video files (e.g. .mp4 with the H264 codec).
-    - There are a few different ways you might go about making such videos:
-    - Screen capture an OpenGL rendering of your simulation, e.g. using the interactive viewer code that we provide below (see “Resources”).
-    - Export frame-by-frame meshes from your simulator and use your path tracer from Assignment 1 to render them.
-    - Use some other modeling/animation/rendering software to render exported meshes (e.g. Maya, Blender).
+    - To make this video, we recommend screen capturing an OpenGL rendering of your simulation, e.g. using the interactive viewer code that we provide (see “Starter Code” below).
+    - You may also chose to render your simulation using external software (e.g. Blender, Houdini), for which you can receive some extra credit (see "Extra Features" below).
   - To turn a set of frame images into a video, you can use [FFMPEG](https://hamelot.io/visualization/using-ffmpeg-to-convert-a-set-of-images-into-a-video/).
 - README **(5 points)**
   - Your README should explain your logic for
@@ -51,52 +50,23 @@ Your simulator must implement at least the following features:
     - Where boundary conditions are defined
   - You should also embed your videos into the README file
 
-Successfully implementing all of the requirements results in a total of **95/100 points**.
+Successfully implementing all of the requirements results in a total of **90/100 points**.
 To score **100/100** (or more!), you’ll need to implement some extra features.
 
 ### Extra Features
 
 Each of the following features that you implement will earn you extra points. The features are ordered roughly by difficulty of implementation.
 
-- **(XX points)** Make a cool alternative initial set of particles (in the shape of the Stanford bunny, perhaps?) and share it with the class on Slack (as e.g. a .ply or .xyz) file.
-- **(XX points)** Implement additional types of external forces. Each must be nontrivially different from all other types of external forces you have implemented.
-- **(XX points)** Implement different boundary conditions. For example, the toroidal boundary conditions mentioned in the Stable fluids paper.
-- **(XX points)** Add obstacles inside the volume that the fluid must flow around. The simplest way to do this is to make certain interior grid cells be treated as boundary cells.
+- **(5 points)** Make a cool alternative initial set of particles (in the shape of the Stanford bunny, perhaps?) and share it with the class on Slack (as e.g. a .ply or .xyz) file.
+- **(up to 10 points)** Better rendering. For example, export data from your simulator (particles, densities) and render it with Blender/Houdini/etc. 
+- **(5 points)** Implement additional types of external forces. Each must be nontrivially different from all other types of external forces you have implemented.
+- **(up to 10 points)** Implement different boundary conditions. For example, the periodic boundary conditions mentioned in the Stable fluids paper.
+- **(10 points)** Add obstacles inside the volume that the fluid must flow around. The simplest way to do this is to make certain interior grid cells be treated as boundary cells.
+- **(10 points)** Use the Marker-and-Cell (MAC) grid representation, also called the staggered grid. In this representation, pressures are still stored at cell centers, but velocities are now stored on the *faces* of cells. This representation can eliminate some visual artefacts that can occur with the standard grid representation, and it also suffers a bit less from numerical dissipation.
 - Something else!
   - This list is not meant to be exhaustive--if you’ve got another advanced feature in mind, go for it! (though you may want to ask a TA or the instructor first if you’re concerned about whether the idea is feasible)
 
-### Advanced Extra Features
-
-These extra features are significantly more challenging to implement, and they involve reading other papers to implement. Some of these are probably big enough in scope to be closer to final project ideas, to be honest. I’ve listed them here for completeness and to potentially get some people interested in some of these ideas :)
-
-- Corotated linear elasticity **(20 points)**
-  - Take a look at [this paper](https://matthias-research.github.io/pages/publications/GI2004.pdf).
-  - Factors out the rotational part of a tetrahedron’s deformation when computing element stress. This allows for fast, stable simulations.
-- Invertible elements **(20 points)**
-  - Take a look at [this paper](http://physbam.stanford.edu/~fedkiw/papers/stanford2004-04.pdf).
-  - Allows for tetrahedra to invert, return to their original shape, and remain stable.
-- Plasticity **(20 points)**
-  - Make some part of the deformation that a mesh undergoes permanent, so that it does not fully return to its original rest shape.
-  - There are different ways to implement this depending on your elasticity model:
-    - [O’Brien et al.](http://graphics.berkeley.edu/papers/Obrien-GMA-2002-08/Obrien-GMA-2002-08.pdf) - Basic Green’s strain formulation
-    - [Müller and Gross](https://matthias-research.github.io/pages/publications/GI2004.pdf) - Formulation for corotated linear elasticity
-    - [Irving et al.](http://physbam.stanford.edu/~fedkiw/papers/stanford2004-04.pdf) - Formulation for invertible elements
-- Fracture **(20 points)**
-  - Split the mesh when stresses become sufficiently large.
-  - Try the method in the [Müller and Gross paper](https://matthias-research.github.io/pages/publications/GI2004.pdf). The method in the [O’Brien and Hodgins paper](http://graphics.berkeley.edu/papers/Obrien-GMA-1999-08/Obrien-GMA-1999-08.pdf), while more physically accurate, is much more complicated to implement.
-- Semi-implicit integration **(25 points)**
-  - Take very large time steps by ‘backwards’ simulation: find the step that, when run backwards from where you want the simulation to end up, takes the simulation to its current state.
-  - Once again, [Baraff and Witkin](https://www.cs.cmu.edu/~baraff/sigcourse/) have a good introduction.
-  - You’ll need to compute the derivative of node forces w.r.t. node positions. [Adam Bargteil’s notes](https://cal.cs.umbc.edu/Courses/CS6967-F08/FE-notes.pdf) have some derivations for this.
-  - You’ll also need to set up and solve a sparse linear system. [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page) provides some good C++ libraries for this.
-- Learning deformable dynamics **(25 points)**
-  - Take a look at [this paper](https://arxiv.org/pdf/1803.09109.pdf).
-  - The DeepWarp model learns to adjust a simplified simulation (using linear elasticity) with a displacement fix.
-
 **Any extra features you implement must be mentioned in your README and demonstrated in your video (you can submit multiple videos to show off different features, if that’s easier).**
-
-### Resources
-
 
 ## Starter Code
 
@@ -104,7 +74,7 @@ The starter code in this repo provides a Grid data structure and a 3D viewer for
 
 ### m_Grid
 
-Look at `src/grid.h`. This class represents the grid that you will update. It is initialized, in `src/window.cpp`, with a dimension of 16 x 16 x 16. The grid object is passed by reference to your simulation class (`src/simulation.cpp`). You should write the final velocity into this grid. The same reference is then passed to the renderer (`src/gridrenderer.cpp`), which visualizes the current state of your field.
+Look at `src/grid.h`. This class represents the grid that you will update. It is initialized, in `src/window.cpp`, with a dimension of 16 x 16 x 16 (feel free to change this to higher resolutions). The grid object is passed by reference to your simulation class (`src/simulation.cpp`). You should write the final velocity into this grid. The same reference is then passed to the renderer (`src/gridrenderer.cpp`), which visualizes the current state of your field.
 
 #### IMPORTANT 
 The velocity field stored in the grid cells of m_grid is what gets rendered and is used to advect the visualization particles. However, your simulation does not necessarily need to compute velocity in this exact representation internally. 
@@ -157,7 +127,7 @@ When the program first loads, you should see a velocity field pointing up along 
     - Advection
     - Projection
     - Diffusion
-- Start with the existing Collocated Grid for your simulation (velocity at grid center) and then move to the MAC representation. MAC is more numerically stable, but we recommend starting with the Collocated Grid.
+- Start with the existing Collocated Grid for your simulation (velocity at grid center). If you get this working, you may consider moving to the MAC representation.
 - Start simple. Begin by applying a constant force, such as gravity, to the velocity field.
 - Test gravity first. If gravity is implemented correctly, particles should gradually accelerate downward and settle toward the bottom of the simulation domain. Remember to apply the boundary conditions!
 - Build the solver incrementally. Implement and test each step of the algorithm (forces, advection, viscosity, projection) separately before combining them.
