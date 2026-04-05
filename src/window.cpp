@@ -318,6 +318,8 @@ void Window::renderUi()
     ImGui::Text("1/2/3/4: render mode");
     ImGui::Text("Space: respawn particles");
     ImGui::Text("O: reset grid");
+    ImGui::Text("K: swirl impulse");
+    ImGui::Text("L: upward impulse");
     ImGui::Text("P: pause");
     ImGui::Separator();
     ImGui::End();
@@ -357,6 +359,8 @@ void Window::onKey(int key, int action)
         case GLFW_KEY_4: m_gridRenderMode = GridRenderMode::PRESSURE; break;
         case GLFW_KEY_SPACE: m_sim.resetParticles(); break;
         case GLFW_KEY_O: m_sim.resetGridToInitial(); break;
+        case GLFW_KEY_K: m_sim.applySwirlImpulse(); break;
+        case GLFW_KEY_L: m_sim.applyUpwardImpulse(); break;
         case GLFW_KEY_C: m_camera.toggleIsOrbiting(); break;
         case GLFW_KEY_ESCAPE: glfwSetWindowShouldClose(m_window, GLFW_TRUE); break;
         default: break;

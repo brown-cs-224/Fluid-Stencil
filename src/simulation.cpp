@@ -429,7 +429,7 @@ void Simulation::init()
                 
 
                 m_grid.at(i, j, k).velocity = 0.5f * strength * swirl;
-                m_grid.at(i, j, k).velocity = 0.2f * Vector3f(0.f, 1.f, 0.f);
+                // m_grid.at(i, j, k).velocity = 0.2f * Vector3f(0.f, 1.f, 0.f);
 
                 const float radial = d.squaredNorm();
                 const float density = std::exp(-radial * invTwoSigma2);
@@ -684,4 +684,81 @@ void Simulation::resetGridToInitial()
         std::copy(m_initialCells.begin(), m_initialCells.end(), m_grid.cells.begin());
 
     m_totalTime = 0.0f;
+}
+
+void Simulation::applySwirlImpulse()
+{
+    const Vector3f domainCenter(
+        0.5f * static_cast<float>(m_grid.nx) * m_grid.cellSize,
+        0.5f * static_cast<float>(m_grid.ny) * m_grid.cellSize,
+        0.5f * static_cast<float>(m_grid.nz) * m_grid.cellSize
+    );
+
+    static constexpr float kImpulseScale = 12.0f;
+
+    for (int k = 0; k < m_grid.nz; ++k) {
+        for (int j = 0; j < m_grid.ny; ++j) {
+            for (int i = 0; i < m_grid.nx; ++i) {
+                const Vector3f p = m_grid.cellCenter(i, j, k);
+                const Vector3f d = p - domainCenter;
+
+                Vector3f swirl(-d.z(), 0.0f, d.x());
+
+                float r = std::sqrt(d.x() * d.x() + d.z() * d.z());
+                if (r > 1e-5f) {
+                    swirl /= r;
+                }
+
+                const float strength = std::exp(-r * 2.0f);
+
+                m_grid.at(i, j, k).velocity += kImpulseScale * strength * swirl;
+
+                // Upward impulse from bottom-center (comment in if desired).
+                // const Vector3f bottomCenter(
+                //     0.5f * static_cast<float>(m_grid.nx) * m_grid.cellSize,
+                //     0.0f,
+                //     0.5f * static_cast<float>(m_grid.nz) * m_grid.cellSize
+                // );
+                // const Vector3f db = p - bottomCenter;
+                // const float rb = std::sqrt(db.x() * db.x() + db.z() * db.z());
+                // const float upStrength = std::exp(-rb * 2.0f) * std::exp(-std::abs(db.y()) * 2.0f);
+                // m_grid.at(i, j, k).velocity += kImpulseScale * upStrength * Vector3f(0.0f, 1.0f, 0.0f);
+            }
+        }
+    }
+}
+
+void Simulation::applyUpwardImpulse()
+{
+    const Vector3f bottomCenter(
+        0.5f * static_cast<float>(m_grid.nx) * m_grid.cellSize,
+        0.0f,
+        0.5f * static_cast<float>(m_grid.nz) * m_grid.cellSize
+    );
+
+    static constexpr float kImpulseScale = 20.0f;
+
+    for (int k = 0; k < m_grid.nz; ++k) {
+        for (int j = 0; j < m_grid.ny; ++j) {
+            for (int i = 0; i < m_grid.nx; ++i) {
+                const Vector3f p = m_grid.cellCenter(i, j, k);
+                const Vector3f d = p - bottomCenter;
+
+                Vector3f radial(d.x(), 0.0f, d.z());
+                const float r = radial.norm();
+                if (r > 1e-5f) {
+                    radial /= r;
+                } else {
+                    radial = Vector3f::Zero();
+                }
+
+                const float radialStrength = std::exp(-r * 2.0f);
+                const float verticalStrength = std::exp(-std::abs(d.y()) * 1.2f);
+                const float strength = radialStrength * verticalStrength;
+
+                const Vector3f impulseDir = (radial + Vector3f(0.0f, 1.0f, 0.0f)).normalized();
+                m_grid.at(i, j, k).velocity += kImpulseScale * strength * impulseDir;
+            }
+        }
+    }
 }

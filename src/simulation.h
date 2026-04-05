@@ -39,6 +39,8 @@ public:
     void setParticleSpawnSphereRadius(float radius);
     void resetParticles();
     void resetGridToInitial();
+    void applySwirlImpulse();
+    void applyUpwardImpulse();
 private:
     Shape m_shape;
     Grid &m_grid;
