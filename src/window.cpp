@@ -147,7 +147,7 @@ bool Window::init()
     m_gridRenderer.init();
 
     Eigen::Vector3f eye(0.f, 2.f, -5.f);
-    Eigen::Vector3f target(0.f, 1.f, 0.f);
+    Eigen::Vector3f target(0.f, 0.f, 0.f);
     m_camera.lookAt(eye, target);
     m_camera.setOrbitPoint(target);
     m_camera.setPerspective(120, m_width / static_cast<float>(m_height), 0.1f, 50.f);

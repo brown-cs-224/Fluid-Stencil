@@ -548,7 +548,7 @@ void Simulation::advectParticles(float seconds)
         static_cast<float>(m_grid.nz) * m_grid.cellSize
     );
 
-    static constexpr float kMaxAge    = 20.0f;
+    static constexpr float kMaxAge    = 60.0f;
     static constexpr float kSpeedScale = 0.6f;
 
     for (auto &particle : m_particles) {
