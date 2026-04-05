@@ -137,7 +137,7 @@ void vstep(Grid& grid, float dt, float viscosity)
     // visually convincing fall that overrides the initial upward field in
     // roughly 0.2 s of real time.
     // ================================================================
-    static constexpr float kGravity = 9.8f;
+    static constexpr float kGravity = 5.f * 9.8f;
     const Vector3f gravity(0.0f, -kGravity, 0.0f);
 
     for (auto& v : w)
@@ -269,19 +269,40 @@ void vstep(Grid& grid, float dt, float viscosity)
         std::vector<float> div(N, 0.0f);
         std::vector<float> q  (N, 0.0f);   // initial guess q = 0
 
-        const float inv2h = 0.5f / h;
+        const std::vector<Vector3f> w_in = w; // keep original velocities for MAC-style projection
+
+        auto q_at = [&](int i, int j, int k) -> float {
+            i = std::clamp(i, 0, nx - 1);
+            j = std::clamp(j, 0, ny - 1);
+            k = std::clamp(k, 0, nz - 1);
+            return q[idx(i, j, k)];
+        };
+
+        auto v_at = [&](int i, int j, int k) -> const Vector3f& {
+            i = std::clamp(i, 0, nx - 1);
+            j = std::clamp(j, 0, ny - 1);
+            k = std::clamp(k, 0, nz - 1);
+            return w_in[idx(i, j, k)];
+        };
+
+        const float invH = 1.0f / h;
 
         // ---- (a) Divergence of w3 ----
-        // Only interior cells: boundary velocities are already zeroed, so
-        // they naturally contribute zero divergence at the faces.
-        for (int k = 1; k < nz - 1; ++k) {
-            for (int j = 1; j < ny - 1; ++j) {
-                for (int i = 1; i < nx - 1; ++i) {
-                    //  ∂u/∂x  +  ∂v/∂y  +  ∂w/∂z   (central differences, spacing h)
+        // ALSO AT THE BOUNDARIES.
+        for (int k = 0; k < nz; ++k) {
+            for (int j = 0; j < ny; ++j) {
+                for (int i = 0; i < nx; ++i) {
+                    const float uR = 0.5f * (v_at(i, j, k).x() + v_at(i + 1, j, k).x());
+                    const float uL = 0.5f * (v_at(i - 1, j, k).x() + v_at(i, j, k).x());
+                    const float vT = 0.5f * (v_at(i, j, k).y() + v_at(i, j + 1, k).y());
+                    const float vB = 0.5f * (v_at(i, j - 1, k).y() + v_at(i, j, k).y());
+                    const float wF = 0.5f * (v_at(i, j, k).z() + v_at(i, j, k + 1).z());
+                    const float wB = 0.5f * (v_at(i, j, k - 1).z() + v_at(i, j, k).z());
+
                     div[idx(i, j, k)] =
-                        (w[idx(i + 1, j,     k    )].x() - w[idx(i - 1, j,     k    )].x()) * inv2h +
-                        (w[idx(i,     j + 1, k    )].y() - w[idx(i,     j - 1, k    )].y()) * inv2h +
-                        (w[idx(i,     j,     k + 1)].z() - w[idx(i,     j,     k - 1)].z()) * inv2h;
+                        (uR - uL) * invH +
+                        (vT - vB) * invH +
+                        (wF - wB) * invH;
                 }
             }
         }
@@ -299,32 +320,43 @@ void vstep(Grid& grid, float dt, float viscosity)
         // conservation restored.
         const float h2 = h * h;
         for (int iter = 0; iter < 40; ++iter) {
-            for (int k = 1; k < nz - 1; ++k) {
-                for (int j = 1; j < ny - 1; ++j) {
-                    for (int i = 1; i < nx - 1; ++i) {
+            for (int k = 0; k < nz; ++k) {
+                for (int j = 0; j < ny; ++j) {
+                    for (int i = 0; i < nx; ++i) {
                         const float qnb =
-                            q[idx(i + 1, j,     k    )] + q[idx(i - 1, j,     k    )] +
-                            q[idx(i,     j + 1, k    )] + q[idx(i,     j - 1, k    )] +
-                            q[idx(i,     j,     k + 1)] + q[idx(i,     j,     k - 1)];
+                            q_at(i + 1, j,     k    ) + q_at(i - 1, j,     k    ) +
+                            q_at(i,     j + 1, k    ) + q_at(i,     j - 1, k    ) +
+                            q_at(i,     j,     k + 1) + q_at(i,     j,     k - 1);
                         q[idx(i, j, k)] = (qnb - h2 * div[idx(i, j, k)]) / 6.0f;
                     }
                 }
             }
         }
 
-        // ---- (c) Subtract ∇q  from w3  to obtain divergence-free  w4 ----
-        // w4[i,j,k] = w3[i,j,k]  –  ∇q[i,j,k]
-        //
-        // Central-difference gradient (sign matters: plus for each component
-        // in the positive direction, minus in the negative direction):
-        //   (∇q)_x[i,j,k] = (q[i+1,j,k] – q[i-1,j,k]) / (2h)
-        for (int k = 1; k < nz - 1; ++k) {
-            for (int j = 1; j < ny - 1; ++j) {
-                for (int i = 1; i < nx - 1; ++i) {
-                    w[idx(i, j, k)] -= Vector3f(
-                        (q[idx(i + 1, j,     k    )] - q[idx(i - 1, j,     k    )]) * inv2h,
-                        (q[idx(i,     j + 1, k    )] - q[idx(i,     j - 1, k    )]) * inv2h,
-                        (q[idx(i,     j,     k + 1)] - q[idx(i,     j,     k - 1)]) * inv2h
+        // ---- (c) Subtract ∇q using MAC-style faces, then re-center ----
+        for (int k = 0; k < nz; ++k) {
+            for (int j = 0; j < ny; ++j) {
+                for (int i = 0; i < nx; ++i) {
+                    // Face-centered components with pressure correction:
+                    const float uL = 0.5f * (v_at(i - 1, j, k).x() + v_at(i, j, k).x())
+                                   - (q_at(i, j, k) - q_at(i - 1, j, k)) * invH;
+                    const float uR = 0.5f * (v_at(i, j, k).x() + v_at(i + 1, j, k).x())
+                                   - (q_at(i + 1, j, k) - q_at(i, j, k)) * invH;
+
+                    const float vB = 0.5f * (v_at(i, j - 1, k).y() + v_at(i, j, k).y())
+                                   - (q_at(i, j, k) - q_at(i, j - 1, k)) * invH;
+                    const float vT = 0.5f * (v_at(i, j, k).y() + v_at(i, j + 1, k).y())
+                                   - (q_at(i, j + 1, k) - q_at(i, j, k)) * invH;
+
+                    const float wB = 0.5f * (v_at(i, j, k - 1).z() + v_at(i, j, k).z())
+                                   - (q_at(i, j, k) - q_at(i, j, k - 1)) * invH;
+                    const float wF = 0.5f * (v_at(i, j, k).z() + v_at(i, j, k + 1).z())
+                                   - (q_at(i, j, k + 1) - q_at(i, j, k)) * invH;
+
+                    w[idx(i, j, k)] = Vector3f(
+                        0.5f * (uL + uR),
+                        0.5f * (vB + vT),
+                        0.5f * (wB + wF)
                     );
                 }
             }
@@ -516,7 +548,7 @@ void Simulation::advectParticles(float seconds)
         static_cast<float>(m_grid.nz) * m_grid.cellSize
     );
 
-    static constexpr float kMaxAge    = 6.0f;
+    static constexpr float kMaxAge    = 20.0f;
     static constexpr float kSpeedScale = 0.6f;
 
     for (auto &particle : m_particles) {
